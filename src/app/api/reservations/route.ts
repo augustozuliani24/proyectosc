@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { SANTUARIO_NOMBRE, TIMEZONE } from "@/lib/config";
+import { IDS_LUGARES, TIMEZONE, nombreDeLugar } from "@/lib/config";
 import {
   MENSAJES,
-  bloquesOcupados,
-  haySuperposicion,
+  lugaresLibres,
+  ocupacionDelDia,
   validarPedido,
 } from "@/lib/disponibilidad";
 import {
@@ -23,7 +23,8 @@ export const dynamic = "force-dynamic";
 interface Cuerpo {
   fecha?: unknown;
   horaInicio?: unknown;
-  duracionMin?: unknown;
+  horaFin?: unknown;
+  lugares?: unknown;
   nombre?: unknown;
   telefono?: unknown;
   motivo?: unknown;
@@ -53,11 +54,13 @@ export async function POST(request: Request) {
   }
 
   const fecha = texto(cuerpo.fecha, 10);
-  const horaInicio = texto(cuerpo.horaInicio, 5);
   const nombre = texto(cuerpo.nombre, 80);
   const telefono = texto(cuerpo.telefono, 30);
   const motivo = texto(cuerpo.motivo, 200);
-  const duracionMin = Number(cuerpo.duracionMin);
+
+  // Sin duplicados y en el orden en que están configurados los lugares.
+  const pedidos = Array.isArray(cuerpo.lugares) ? cuerpo.lugares.map(String) : [];
+  const lugares = IDS_LUGARES.filter((id) => pedidos.includes(id));
 
   if (nombre.length < 2) {
     return error("nombre_invalido", "Escribí a nombre de quién va la reserva.", 400);
@@ -65,64 +68,74 @@ export async function POST(request: Request) {
   if (!/^[\d\s+()-]{6,30}$/.test(telefono)) {
     return error("telefono_invalido", "Escribí un teléfono de contacto válido.", 400);
   }
+  if (motivo.length < 3) {
+    return error("motivo_invalido", "Contanos brevemente para qué es la reserva.", 400);
+  }
 
-  const inicioMin = parsearHora(horaInicio);
-  if (inicioMin === null) {
+  const inicioMin = parsearHora(texto(cuerpo.horaInicio, 5));
+  const finMin = parsearHora(texto(cuerpo.horaFin, 5));
+  if (inicioMin === null || finMin === null) {
     return error("horario_invalido", MENSAJES.horario_invalido, 400);
   }
 
-  const motivoRechazo = validarPedido(fecha, inicioMin, duracionMin);
+  const motivoRechazo = validarPedido(fecha, inicioMin, finMin, lugares);
   if (motivoRechazo) {
     return error(motivoRechazo, MENSAJES[motivoRechazo], 400);
   }
 
-  const finMin = inicioMin + duracionMin;
+  const detalleReserva = {
+    fecha,
+    fechaTexto: fechaEnPalabras(fecha, TIMEZONE),
+    horaInicio: formatearHora(inicioMin),
+    horaFin: formatearHora(finMin),
+    lugares: lugares.map(nombreDeLugar),
+    nombre,
+  };
 
   // En demostración devolvemos una confirmación falsa, que la página muestra
   // bien marcada como tal, y no tocamos el calendario.
   if (modoDemo()) {
-    return NextResponse.json({
-      ok: true,
-      reserva: {
-        id: "demo",
-        demo: true,
-        fecha,
-        fechaTexto: fechaEnPalabras(fecha, TIMEZONE),
-        horaInicio: formatearHora(inicioMin),
-        horaFin: formatearHora(finMin),
-        nombre,
-        lugar: SANTUARIO_NOMBRE,
-      },
-    });
+    return NextResponse.json({ ok: true, reserva: { id: "demo", demo: true, ...detalleReserva } });
   }
 
   try {
-    // 1) Chequeo de disponibilidad contra el calendario.
+    // 1) Chequeo de disponibilidad contra el calendario, lugar por lugar.
     const eventos = await listarEventosDelDia(fecha);
-    const ocupados = bloquesOcupados(eventos, fecha);
+    const ocupados = ocupacionDelDia(eventos, fecha);
+    const libres = lugaresLibres(ocupados, inicioMin, finMin, lugares);
+    const tomados = lugares.filter((id) => !libres.includes(id));
 
-    if (haySuperposicion(ocupados, inicioMin, finMin)) {
+    if (tomados.length > 0) {
+      const nombres = tomados.map(nombreDeLugar).join(" y ");
       return error(
         "ocupado",
-        "Ese horario ya está reservado. Elegí otro horario o cambiá la duración.",
+        `${nombres} ya ${tomados.length > 1 ? "están reservados" : "está reservado"} en ese horario. Elegí otro horario u otro lugar.`,
         409,
-        { ocupados },
+        { ocupados, tomados },
       );
     }
 
     // 2) Creamos el evento.
-    const evento = await crearReserva({ fecha, inicioMin, finMin, nombre, telefono, motivo });
+    const evento = await crearReserva({
+      fecha,
+      inicioMin,
+      finMin,
+      lugares,
+      nombre,
+      telefono,
+      motivo,
+    });
 
     // 3) Releemos por si alguien reservó lo mismo en el mismo momento. Si otra
-    //    reserva se creó antes, damos de baja la nuestra y avisamos.
+    //    reserva del mismo lugar se creó antes, damos de baja la nuestra.
     const inicio = aInstanteUTC(fecha, inicioMin, TIMEZONE);
     const fin = aInstanteUTC(fecha, finMin, TIMEZONE);
     const posteriores = await listarEventos(inicio, fin);
 
     const pisada = posteriores.find((otro) => {
       if (otro.id === evento.id) return false;
-      const seSuperpone = otro.inicio < fin && otro.fin > inicio;
-      if (!seSuperpone) return false;
+      if (otro.inicio >= fin || otro.fin <= inicio) return false;
+      if (!otro.lugares.some((id) => lugares.includes(id))) return false;
       if (!otro.creado || !evento.creado) return true;
       if (otro.creado !== evento.creado) return otro.creado < evento.creado;
       return otro.id < evento.id;
@@ -135,22 +148,11 @@ export async function POST(request: Request) {
         "ocupado",
         "Justo alguien reservó ese horario. Elegí otro, por favor.",
         409,
-        { ocupados: bloquesOcupados(eventosFrescos, fecha) },
+        { ocupados: ocupacionDelDia(eventosFrescos, fecha) },
       );
     }
 
-    return NextResponse.json({
-      ok: true,
-      reserva: {
-        id: evento.id,
-        fecha,
-        fechaTexto: fechaEnPalabras(fecha, TIMEZONE),
-        horaInicio: formatearHora(inicioMin),
-        horaFin: formatearHora(finMin),
-        nombre,
-        lugar: SANTUARIO_NOMBRE,
-      },
-    });
+    return NextResponse.json({ ok: true, reserva: { id: evento.id, ...detalleReserva } });
   } catch (e) {
     const detalle = e instanceof CalendarioError ? e.message : String(e);
     console.error("[reservations]", detalle);

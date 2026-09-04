@@ -1,6 +1,6 @@
 import { JWT } from "google-auth-library";
 
-import { CALENDAR_ID, TIMEZONE } from "@/lib/config";
+import { CALENDAR_ID, IDS_LUGARES, LUGARES, TIMEZONE, nombreDeLugar } from "@/lib/config";
 import { aInstanteUTC } from "@/lib/time";
 
 const API = "https://www.googleapis.com/calendar/v3";
@@ -22,15 +22,18 @@ export interface EventoCalendario {
   inicio: Date;
   fin: Date;
   todoElDia: boolean;
+  /** Qué lugares ocupa este evento. */
+  lugares: string[];
 }
 
 export interface DatosReserva {
   fecha: string;
   inicioMin: number;
   finMin: number;
+  lugares: string[];
   nombre: string;
   telefono: string;
-  motivo?: string;
+  motivo: string;
 }
 
 /** true si están cargadas las credenciales de Google. */
@@ -92,14 +95,49 @@ async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
 
 interface EventoAPI {
   id: string;
+  summary?: string;
   status?: string;
   created?: string;
   transparency?: string;
   start?: { dateTime?: string; date?: string };
   end?: { dateTime?: string; date?: string };
+  extendedProperties?: { private?: Record<string, string> };
 }
 
-/** Eventos que ocupan el santuario entre dos instantes. */
+/** Minúsculas y sin acentos, para comparar títulos escritos a mano. */
+function normalizar(texto: string): string {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+/**
+ * Qué lugares ocupa un evento.
+ *
+ * Las reservas hechas desde la web lo dejan anotado en el evento, así que ahí
+ * es exacto. Para los eventos cargados a mano en Google Calendar miramos si el
+ * título nombra algún lugar ("Cocina - reunión"); si no nombra ninguno, damos
+ * por ocupado todo, que es lo seguro: preferimos rechazar una reserva de más
+ * antes que superponer dos.
+ */
+function lugaresDelEvento(item: EventoAPI): string[] {
+  const anotados = (item.extendedProperties?.private?.lugares ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter((id) => IDS_LUGARES.includes(id));
+
+  if (anotados.length > 0) return anotados;
+
+  const titulo = normalizar(item.summary ?? "");
+  const nombrados = LUGARES.filter(
+    (lugar) => titulo.includes(normalizar(lugar.nombre)) || titulo.includes(lugar.id),
+  ).map((lugar) => lugar.id);
+
+  return nombrados.length > 0 ? nombrados : [...IDS_LUGARES];
+}
+
+/** Eventos que ocupan algún lugar entre dos instantes. */
 export async function listarEventos(desde: Date, hasta: Date): Promise<EventoCalendario[]> {
   const params = new URLSearchParams({
     timeMin: desde.toISOString(),
@@ -130,7 +168,14 @@ export async function listarEventos(desde: Date, hasta: Date): Promise<EventoCal
 
     if (Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime())) continue;
 
-    eventos.push({ id: item.id, creado: item.created ?? "", inicio, fin, todoElDia });
+    eventos.push({
+      id: item.id,
+      creado: item.created ?? "",
+      inicio,
+      fin,
+      todoElDia,
+      lugares: lugaresDelEvento(item),
+    });
   }
 
   return eventos;
@@ -148,29 +193,30 @@ export function listarEventosDelDia(fecha: string): Promise<EventoCalendario[]> 
 export async function crearReserva(datos: DatosReserva): Promise<EventoCalendario> {
   const inicio = aInstanteUTC(datos.fecha, datos.inicioMin, TIMEZONE);
   const fin = aInstanteUTC(datos.fecha, datos.finMin, TIMEZONE);
+  const nombresLugares = datos.lugares.map(nombreDeLugar);
 
   const descripcion = [
+    `Lugares: ${nombresLugares.join(", ")}`,
     `Reservado por: ${datos.nombre}`,
     `Teléfono: ${datos.telefono}`,
-    datos.motivo ? `Motivo: ${datos.motivo}` : null,
+    `Motivo: ${datos.motivo}`,
     "",
     "Reserva cargada automáticamente desde la página web.",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  ].join("\n");
 
   const creado = await pedir<EventoAPI>(
     `/calendars/${encodeURIComponent(CALENDAR_ID)}/events`,
     {
       method: "POST",
       body: JSON.stringify({
-        summary: `Reserva · ${datos.nombre}`,
+        summary: `${nombresLugares.join(" + ")} · ${datos.nombre}`,
         description: descripcion,
         start: { dateTime: inicio.toISOString(), timeZone: TIMEZONE },
         end: { dateTime: fin.toISOString(), timeZone: TIMEZONE },
         extendedProperties: {
           private: {
             origen: "web-reservas",
+            lugares: datos.lugares.join(","),
             nombre: datos.nombre,
             telefono: datos.telefono,
           },
@@ -185,6 +231,7 @@ export async function crearReserva(datos: DatosReserva): Promise<EventoCalendari
     inicio,
     fin,
     todoElDia: false,
+    lugares: [...datos.lugares],
   };
 }
 

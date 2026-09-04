@@ -1,8 +1,9 @@
 # Reservas del Santuario
 
-Página web para que la gente reserve el Santuario de Schoenstatt sola, sin que nadie
-tenga que coordinar por WhatsApp. La persona elige día y horario, y si está libre la
-reserva queda cargada **al instante en el Google Calendar del santuario**.
+Página web para que la gente reserve los espacios del Santuario de Schoenstatt sola, sin
+que nadie tenga que coordinar por WhatsApp. La persona elige día, horario y qué lugares
+necesita, y si están libres la reserva queda cargada **al instante en el Google Calendar
+del santuario**.
 
 No hay base de datos: el calendario de Google es el único registro de las reservas.
 Eso significa que quien organiza sigue viendo y manejando todo desde el Google Calendar
@@ -14,14 +15,32 @@ de siempre, sin aprender ninguna herramienta nueva.
 2. El sistema le responde automáticamente un mensaje con dos caminos: seguir escribiendo
    si es una consulta (**la contesta una persona, el bot no se mete**), o entrar al link
    si quiere reservar.
-3. En la página elige día, duración y horario. Los horarios ya ocupados aparecen tachados,
-   así no prueba a ciegas.
+3. En la página elige el día, toca la hora de inicio y la de fin, y marca qué lugares
+   necesita. Lo que ya está reservado aparece tachado, así no prueba a ciegas.
 4. Al confirmar, el servidor vuelve a chequear el calendario y crea el evento. Si en el
-   medio alguien tomó ese horario, la reserva se rechaza y se le muestran los horarios
-   que quedan libres.
+   medio alguien tomó ese horario, la reserva se rechaza y se le muestra qué quedó libre.
 
 La única automatización sobre WhatsApp es mandar el link. Todas las conversaciones siguen
 en manos de la persona que atiende el número.
+
+## Los lugares
+
+Se pueden reservar varios espacios independientes — por defecto **Santuario**, **Zoom** y
+**Cocina** — y una misma persona puede tomar uno, dos o los tres en el mismo horario. Cada
+lugar tiene su disponibilidad propia: que el Santuario esté ocupado a las 10 no impide que
+alguien reserve la Cocina a las 10.
+
+Todo vive en **un solo Google Calendar**, para que quien organiza siga usando el calendario
+de siempre. Cada reserva es un evento cuyo título dice los lugares (`Santuario + Cocina ·
+Familia Pérez`), y el sistema además los guarda en el evento para saber exactamente cuáles
+ocupa.
+
+Para los eventos que se cargan **a mano** en el calendario, el sistema mira el título: si
+nombra algún lugar (`Cocina - reunión`), bloquea solo ese; si no nombra ninguno, bloquea
+los tres. Es a propósito — ante la duda prefiere rechazar una reserva de más antes que
+superponer dos. Así que conviene nombrar el lugar en el título de los eventos manuales.
+
+La lista de lugares se cambia con `SANTUARIO_LUGARES` sin tocar código.
 
 ## Puesta en marcha
 
@@ -128,11 +147,11 @@ src/
     api/reservations/route.ts      crea la reserva en el calendario
     api/whatsapp/webhook/route.ts  respuesta automática con el link
   components/
-    booking-form.tsx               el formulario (día → horario → datos)
+    booking-form.tsx               el formulario (día → horario → lugares → datos)
   lib/
     config.ts                      toda la configuración por variables de entorno
     time.ts                        fechas y horas con zona horaria explícita
-    disponibilidad.ts              reglas de qué se puede reservar y qué no
+    disponibilidad.ts              reglas de qué se puede reservar, y ocupación por lugar
     google-calendar.ts             lectura y escritura del calendario
     whatsapp.ts                    envío de mensajes y validación de firma
 docs/

@@ -4,17 +4,20 @@ import {
   APERTURA_MIN,
   CIERRE_MIN,
   DIAS_CERRADOS,
-  DURACIONES,
+  DURACION_MAX_MIN,
+  IDS_LUGARES,
+  LUGARES,
   MAX_DIAS_ANTICIPACION,
   PASO_MIN,
   TIMEZONE,
 } from "@/lib/config";
 import {
-  bloquesOcupados,
   fechaMaxima,
   hoyLocal,
-  horariosPosibles,
   minimoInicio,
+  ocupacionDelDia,
+  puntosDelDia,
+  type OcupacionPorLugar,
 } from "@/lib/disponibilidad";
 import { CalendarioError, listarEventosDelDia } from "@/lib/google-calendar";
 import { modoDemo } from "@/lib/modo";
@@ -22,6 +25,10 @@ import { diaDeLaSemana, esFechaValida, fechaEnPalabras } from "@/lib/time";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function sinOcupacion(): OcupacionPorLugar {
+  return Object.fromEntries(IDS_LUGARES.map((id) => [id, []]));
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -45,9 +52,10 @@ export async function GET(request: Request) {
     aperturaMin: APERTURA_MIN,
     cierreMin: CIERRE_MIN,
     pasoMin: PASO_MIN,
-    duraciones: DURACIONES,
+    duracionMaxMin: DURACION_MAX_MIN,
     minimoInicioMin: minimoInicio(fecha, ahora),
-    horarios: horariosPosibles(fecha, ahora),
+    puntos: puntosDelDia(),
+    lugares: LUGARES,
     hoy: hoyLocal(ahora),
     fechaMaxima: fechaMaxima(ahora),
     maxDias: MAX_DIAS_ANTICIPACION,
@@ -56,18 +64,18 @@ export async function GET(request: Request) {
   };
 
   if (diaCerrado) {
-    return NextResponse.json({ ...base, ocupados: [] });
+    return NextResponse.json({ ...base, ocupados: sinOcupacion() });
   }
 
   // En demostración mostramos el día entero libre, con el cartel correspondiente:
   // sirve para ver la página antes de tener las credenciales de Google.
   if (modoDemo()) {
-    return NextResponse.json({ ...base, ocupados: [] });
+    return NextResponse.json({ ...base, ocupados: sinOcupacion() });
   }
 
   try {
     const eventos = await listarEventosDelDia(fecha);
-    return NextResponse.json({ ...base, ocupados: bloquesOcupados(eventos, fecha) });
+    return NextResponse.json({ ...base, ocupados: ocupacionDelDia(eventos, fecha) });
   } catch (error) {
     const detalle = error instanceof CalendarioError ? error.message : String(error);
     console.error("[availability]", detalle);

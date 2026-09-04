@@ -32,6 +32,17 @@ clasificar cada mensaje entrante (consulta vs. reserva) y extraer los datos. Se 
 tiene costo por mensaje, es impredecible y no hace falta. Un mensaje automático con un
 link resuelve lo mismo con lógica simple y gratis.
 
+**Horario libre, no franjas fijas.** La persona toca la hora de inicio y la de fin sobre
+una grilla de media hora, así una reserva puede ir de 9:00 a 9:30 o de 15:00 a 21:00 sin
+que haya que anticipar qué duraciones ofrecer. La grilla solo deja llegar hasta donde
+empieza la próxima reserva.
+
+**Varios lugares, una sola agenda.** Se reservan Santuario, Zoom y Cocina por separado, y
+una persona puede tomar los que necesite a la vez. Todo va a un mismo Google Calendar
+(para no obligar a manejar tres), y cada evento anota qué lugares ocupa. Los eventos
+cargados a mano se interpretan por el título, y si no nombran ningún lugar se asume que
+ocupan todo: ante la duda, mejor rechazar una reserva de más que superponer dos.
+
 **Sin base de datos.** El Google Calendar es el único registro. Cada evento ya guarda
 fecha, horario y quién reservó. Ventajas: quien organiza sigue usando la herramienta de
 siempre, no hay dos fuentes de verdad que puedan desincronizarse, y no hay que pagar ni
@@ -80,9 +91,5 @@ punto 1 también se puede ver y navegar, en modo demostración, sin guardar nada
 
 ## Pendiente de definir
 
-- **Cómo se usa el santuario en la práctica**: hoy el sistema asume horario libre de 8 a
-  22, turnos que arrancan en punto o y media, y duraciones de 1 a 3 horas. Todo eso se
-  cambia con variables de entorno, sin tocar código. Si en realidad se reserva por día
-  completo, o hay franjas fijas, hay que ajustarlo.
 - **Si conviene que las reservas queden confirmadas al instante** o que primero las
   apruebe alguien. Hoy se confirman solas.

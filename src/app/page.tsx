@@ -3,7 +3,7 @@ import {
   APERTURA_MIN,
   CIERRE_MIN,
   CONTACTO_WHATSAPP,
-  DURACIONES,
+  LUGARES,
   MAX_DIAS_ANTICIPACION,
   SANTUARIO_NOMBRE,
 } from "@/lib/config";
@@ -15,6 +15,11 @@ export const dynamic = "force-dynamic";
 export default function Home() {
   const hoy = hoyLocal();
   const fechaInicial = primeraFechaReservable();
+  const nombresLugares = LUGARES.map((lugar) => lugar.nombre);
+  const listaLugares =
+    nombresLugares.length > 1
+      ? `${nombresLugares.slice(0, -1).join(", ")} y ${nombresLugares[nombresLugares.length - 1]}`
+      : nombresLugares[0];
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-10 sm:py-14">
@@ -23,11 +28,11 @@ export default function Home() {
           Movimiento de Schoenstatt
         </p>
         <h1 className="mt-2 text-3xl font-semibold text-marian-dark sm:text-4xl">
-          Reservá el {SANTUARIO_NOMBRE}
+          Reservas del {SANTUARIO_NOMBRE}
         </h1>
         <p className="mx-auto mt-3 max-w-md text-tinta/70">
-          Elegí el día y el horario que necesitás. Si está libre, queda reservado al instante; si no,
-          te mostramos qué horarios quedan disponibles.
+          Elegí el día, el horario y qué lugares necesitás. Si están libres, queda reservado al
+          instante; si no, te mostramos qué queda disponible.
         </p>
       </header>
 
@@ -35,15 +40,14 @@ export default function Home() {
         hoy={hoy}
         fechaInicial={fechaInicial}
         fechaMaxima={fechaMaxima()}
-        duraciones={DURACIONES}
-        santuario={SANTUARIO_NOMBRE}
+        lugares={LUGARES}
         contacto={CONTACTO_WHATSAPP}
       />
 
       <footer className="mt-10 border-t border-borde pt-6 text-center text-xs leading-relaxed text-tinta/50">
         <p>
-          Se puede reservar de {formatearHora(APERTURA_MIN)} a {formatearHora(CIERRE_MIN)}, con hasta{" "}
-          {MAX_DIAS_ANTICIPACION} días de anticipación.
+          Se puede reservar {listaLugares} de {formatearHora(APERTURA_MIN)} a{" "}
+          {formatearHora(CIERRE_MIN)}, con hasta {MAX_DIAS_ANTICIPACION} días de anticipación.
         </p>
         <p className="mt-1">
           ¿Tenés una consulta que no es una reserva? Escribinos por WhatsApp y te responde alguien

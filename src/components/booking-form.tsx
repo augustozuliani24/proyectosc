@@ -7,15 +7,22 @@ interface Bloque {
   finMin: number;
 }
 
+interface Lugar {
+  id: string;
+  nombre: string;
+}
+
 interface Disponibilidad {
   fecha: string;
   fechaTexto: string;
   aperturaMin: number;
   cierreMin: number;
+  pasoMin: number;
+  duracionMaxMin: number;
   minimoInicioMin: number;
-  duraciones: number[];
-  horarios: number[];
-  ocupados: Bloque[];
+  puntos: number[];
+  lugares: Lugar[];
+  ocupados: Record<string, Bloque[]>;
   diaCerrado: boolean;
   demo?: boolean;
 }
@@ -27,16 +34,15 @@ interface Reserva {
   fechaTexto: string;
   horaInicio: string;
   horaFin: string;
+  lugares: string[];
   nombre: string;
-  lugar: string;
 }
 
 interface Props {
   hoy: string;
   fechaInicial: string;
   fechaMaxima: string;
-  duraciones: number[];
-  santuario: string;
+  lugares: Lugar[];
   contacto: string;
 }
 
@@ -54,21 +60,37 @@ function duracionEnPalabras(minutos: number): string {
   return `${horas} h ${resto} min`;
 }
 
-function seSuperpone(ocupados: Bloque[], inicio: number, fin: number): boolean {
-  return ocupados.some((bloque) => inicio < bloque.finMin && fin > bloque.inicioMin);
+/** ["a", "b", "c"] a "a, b y c" */
+function enumerar(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? "";
+  return `${items.slice(0, -1).join(", ")} y ${items[items.length - 1]}`;
+}
+
+function ocupado(bloques: Bloque[], inicio: number, fin: number): boolean {
+  return bloques.some((bloque) => inicio < bloque.finMin && fin > bloque.inicioMin);
+}
+
+/** Hasta qué hora se puede estirar una reserva en un lugar, arrancando en `inicio`. */
+function extensionLibre(bloques: Bloque[], inicio: number, tope: number): number {
+  for (const bloque of bloques) {
+    if (bloque.finMin <= inicio) continue;
+    if (bloque.inicioMin <= inicio) return inicio;
+    return Math.min(tope, bloque.inicioMin);
+  }
+  return tope;
 }
 
 export default function BookingForm({
   hoy,
   fechaInicial,
   fechaMaxima,
-  duraciones,
-  santuario,
+  lugares: lugaresIniciales,
   contacto,
 }: Props) {
   const [fecha, setFecha] = useState(fechaInicial);
-  const [duracion, setDuracion] = useState(duraciones[0]);
-  const [horaInicio, setHoraInicio] = useState<number | null>(null);
+  const [inicio, setInicio] = useState<number | null>(null);
+  const [fin, setFin] = useState<number | null>(null);
+  const [elegidos, setElegidos] = useState<string[]>([]);
 
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
@@ -84,11 +106,11 @@ export default function BookingForm({
   const [reserva, setReserva] = useState<Reserva | null>(null);
 
   // La agenda y el error se derivan de la fecha elegida: si todavía no llegó la
-  // respuesta de este día, estamos cargando. Así no hace falta un estado extra
-  // que haya que mantener sincronizado a mano.
+  // respuesta de este día, estamos cargando.
   const disponibilidad = agenda?.fecha === fecha ? agenda : null;
   const errorAgenda = fallo?.fecha === fecha ? fallo.mensaje : null;
   const cargando = !disponibilidad && !errorAgenda;
+  const lugares = disponibilidad?.lugares ?? lugaresIniciales;
 
   useEffect(() => {
     let vigente = true;
@@ -126,38 +148,79 @@ export default function BookingForm({
     };
   }, [fecha, recarga]);
 
-  /** Horarios de inicio que entran completos y no pisan ninguna reserva. */
-  const horariosLibres = useMemo(() => {
-    if (!disponibilidad) return [];
-    return disponibilidad.horarios.filter(
-      (inicio) =>
-        inicio + duracion <= disponibilidad.cierreMin &&
-        !seSuperpone(disponibilidad.ocupados, inicio, inicio + duracion),
+  /**
+   * Hasta qué hora se puede estirar la reserva desde el inicio elegido. Alcanza
+   * con que quede libre UN lugar, porque después se elige cuál.
+   */
+  const topeDelRango = useMemo(() => {
+    if (!disponibilidad || inicio === null) return null;
+    const tope = Math.min(disponibilidad.cierreMin, inicio + disponibilidad.duracionMaxMin);
+    return Math.max(
+      ...lugares.map((lugar) =>
+        extensionLibre(disponibilidad.ocupados[lugar.id] ?? [], inicio, tope),
+      ),
     );
-  }, [disponibilidad, duracion]);
+  }, [disponibilidad, inicio, lugares]);
 
-  const horariosOcupados = useMemo(() => {
-    const libres = new Set(horariosLibres);
-    return new Set((disponibilidad?.horarios ?? []).filter((inicio) => !libres.has(inicio)));
-  }, [disponibilidad, horariosLibres]);
+  /** El rango vale si sigue entrando en la agenda; si no, se suelta solo. */
+  const rango = useMemo(() => {
+    if (inicio === null || fin === null || topeDelRango === null) return null;
+    if (fin <= inicio || fin > topeDelRango) return null;
+    return { inicio, fin };
+  }, [inicio, fin, topeDelRango]);
 
-  // El horario válido también se deriva: si al cambiar la duración o al
-  // refrescar la agenda el elegido deja de entrar, se deselecciona solo.
-  const horaElegida =
-    horaInicio !== null && horariosLibres.includes(horaInicio) ? horaInicio : null;
+  /** Qué lugares están libres en el rango elegido. */
+  const lugaresLibres = useMemo(() => {
+    if (!disponibilidad || !rango) return [];
+    return lugares
+      .filter((lugar) => !ocupado(disponibilidad.ocupados[lugar.id] ?? [], rango.inicio, rango.fin))
+      .map((lugar) => lugar.id);
+  }, [disponibilidad, rango, lugares]);
+
+  // También derivado: si el rango cambia y un lugar elegido queda ocupado, deja
+  // de estar seleccionado sin que haga falta limpiarlo a mano.
+  const seleccionados = elegidos.filter((id) => lugaresLibres.includes(id));
 
   const listoParaEnviar =
-    horaElegida !== null && nombre.trim().length >= 2 && telefono.trim().length >= 6 && !enviando;
+    rango !== null &&
+    seleccionados.length > 0 &&
+    nombre.trim().length >= 2 &&
+    telefono.trim().length >= 6 &&
+    motivo.trim().length >= 3 &&
+    !enviando;
 
   function cambiarFecha(nueva: string) {
     setFecha(nueva);
-    setHoraInicio(null);
+    setInicio(null);
+    setFin(null);
     setErrorEnvio(null);
+  }
+
+  /** Primer toque: hora de inicio. Segundo: hora de fin. */
+  function tocarPunto(punto: number) {
+    setErrorEnvio(null);
+    if (inicio === null || fin !== null) {
+      setInicio(punto);
+      setFin(null);
+      return;
+    }
+    if (punto <= inicio) {
+      setInicio(punto);
+      return;
+    }
+    setFin(punto);
+  }
+
+  function alternarLugar(id: string) {
+    setErrorEnvio(null);
+    setElegidos((previos) =>
+      previos.includes(id) ? previos.filter((otro) => otro !== id) : [...previos, id],
+    );
   }
 
   async function enviar(evento: React.FormEvent) {
     evento.preventDefault();
-    if (horaElegida === null) return;
+    if (!rango || seleccionados.length === 0) return;
 
     setEnviando(true);
     setErrorEnvio(null);
@@ -168,8 +231,9 @@ export default function BookingForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fecha,
-          horaInicio: formatearHora(horaElegida),
-          duracionMin: duracion,
+          horaInicio: formatearHora(rango.inicio),
+          horaFin: formatearHora(rango.fin),
+          lugares: seleccionados,
           nombre,
           telefono,
           motivo,
@@ -182,10 +246,9 @@ export default function BookingForm({
       if (!respuesta.ok || !cuerpo.ok) {
         setErrorEnvio(cuerpo?.mensaje ?? "No pudimos guardar la reserva.");
 
-        // Si nos ganaron de mano, refrescamos la grilla con lo que ya está tomado.
+        // Si nos ganaron de mano, refrescamos la agenda con lo que ya está tomado.
         if (cuerpo?.codigo === "ocupado") {
-          setHoraInicio(null);
-          if (Array.isArray(cuerpo.ocupados)) {
+          if (cuerpo.ocupados) {
             setAgenda((previa) =>
               previa && previa.fecha === fecha ? { ...previa, ocupados: cuerpo.ocupados } : previa,
             );
@@ -206,7 +269,9 @@ export default function BookingForm({
 
   function empezarDeNuevo() {
     setReserva(null);
-    setHoraInicio(null);
+    setInicio(null);
+    setFin(null);
+    setElegidos([]);
     setNombre("");
     setTelefono("");
     setMotivo("");
@@ -230,13 +295,13 @@ export default function BookingForm({
         <p className="mt-2 text-tinta/70">
           {reserva.demo
             ? "Esto es una demostración: la reserva no se guardó en ningún lado."
-            : "Ya quedó agendada en el calendario del santuario."}
+            : "Ya quedó agendada en el calendario."}
         </p>
 
         <dl className="mx-auto mt-6 max-w-sm space-y-2 rounded-xl bg-marian-soft/60 p-5 text-left text-sm">
           <div className="flex justify-between gap-4">
-            <dt className="text-tinta/60">Lugar</dt>
-            <dd className="text-right font-medium">{reserva.lugar}</dd>
+            <dt className="text-tinta/60">{reserva.lugares.length > 1 ? "Lugares" : "Lugar"}</dt>
+            <dd className="text-right font-medium">{enumerar(reserva.lugares)}</dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-tinta/60">Día</dt>
@@ -265,14 +330,15 @@ export default function BookingForm({
     );
   }
 
+  const paso = "flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-marian text-xs font-bold text-white";
+  const titulo = "flex items-center gap-2 text-lg font-semibold text-marian-dark";
+
   return (
     <form onSubmit={enviar} className="space-y-5">
       {/* Paso 1: el día */}
       <section className="tarjeta p-6">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-marian-dark">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-marian text-xs font-bold text-white">
-            1
-          </span>
+        <h2 className={titulo}>
+          <span className={paso}>1</span>
           Elegí el día
         </h2>
 
@@ -293,36 +359,22 @@ export default function BookingForm({
         )}
       </section>
 
-      {/* Paso 2: el horario */}
+      {/* Paso 2: el horario, tocando inicio y fin */}
       <section className="tarjeta p-6">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-marian-dark">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-marian text-xs font-bold text-white">
-            2
-          </span>
+        <h2 className={titulo}>
+          <span className={paso}>2</span>
           Elegí el horario
         </h2>
 
-        <div className="mt-4">
-          <p className="mb-2 text-sm font-medium text-tinta/70">¿Cuánto tiempo lo necesitás?</p>
-          <div className="flex flex-wrap gap-2">
-            {duraciones.map((opcion) => (
-              <button
-                key={opcion}
-                type="button"
-                onClick={() => setDuracion(opcion)}
-                className={`rounded-full border px-4 py-1.5 text-sm font-medium transition ${
-                  duracion === opcion
-                    ? "border-marian bg-marian text-white"
-                    : "border-borde bg-white text-tinta/70 hover:border-marian/40"
-                }`}
-              >
-                {duracionEnPalabras(opcion)}
-              </button>
-            ))}
-          </div>
-        </div>
+        <p className="mt-2 text-sm text-tinta/60">
+          {rango
+            ? "¿Te equivocaste? Tocá cualquier hora para empezar de nuevo."
+            : inicio === null
+              ? "Tocá la hora en la que empezás."
+              : `Empezás a las ${formatearHora(inicio)}. Ahora tocá la hora en la que terminás.`}
+        </p>
 
-        <div className="mt-5">
+        <div className="mt-4">
           {cargando && <p className="text-sm text-tinta/60">Consultando la agenda…</p>}
 
           {errorAgenda && (
@@ -338,73 +390,159 @@ export default function BookingForm({
           )}
 
           {disponibilidad && !disponibilidad.diaCerrado && (
-            <>
-              {disponibilidad.ocupados.length > 0 && (
-                <p className="mb-3 text-sm text-tinta/60">
-                  Ya reservado ese día:{" "}
-                  <span className="font-medium text-tinta/80">
-                    {disponibilidad.ocupados
-                      .map((b) => `${formatearHora(b.inicioMin)}–${formatearHora(b.finMin)}`)
-                      .join(" · ")}
-                  </span>
-                </p>
-              )}
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+              {disponibilidad.puntos.map((punto) => {
+                const eligiendoFin = inicio !== null && fin === null;
 
-              {horariosLibres.length === 0 ? (
-                <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
-                  {disponibilidad.minimoInicioMin >= disponibilidad.cierreMin
-                    ? "Por hoy ya no quedan horarios disponibles. Elegí otro día."
-                    : `No queda ningún horario de ${duracionEnPalabras(duracion)} libre ese día. Probá con una duración más corta u otra fecha.`}
-                </p>
-              ) : (
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
-                  {disponibilidad.horarios.map((inicio) => {
-                    const ocupado = horariosOcupados.has(inicio);
-                    const elegido = horaElegida === inicio;
+                // Un horario sirve como inicio si algún lugar está libre desde ahí,
+                // y como fin si no pasa el tope del rango que arrancó el usuario.
+                const sirveComoInicio =
+                  punto >= disponibilidad.minimoInicioMin &&
+                  punto + disponibilidad.pasoMin <= disponibilidad.cierreMin &&
+                  lugares.some(
+                    (lugar) =>
+                      !ocupado(
+                        disponibilidad.ocupados[lugar.id] ?? [],
+                        punto,
+                        punto + disponibilidad.pasoMin,
+                      ),
+                  );
 
-                    return (
-                      <button
-                        key={inicio}
-                        type="button"
-                        disabled={ocupado}
-                        onClick={() => setHoraInicio(inicio)}
-                        title={
-                          ocupado
-                            ? "No disponible"
-                            : `De ${formatearHora(inicio)} a ${formatearHora(inicio + duracion)}`
-                        }
-                        className={`rounded-lg border py-2 text-sm font-medium transition ${
-                          elegido
-                            ? "border-marian bg-marian text-white"
-                            : ocupado
-                              ? "cursor-not-allowed border-borde bg-slate-100 text-slate-400 line-through"
-                              : "border-borde bg-white text-tinta hover:border-marian hover:bg-marian-soft"
-                        }`}
-                      >
-                        {formatearHora(inicio)}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </>
+                const sirveComoFin =
+                  eligiendoFin &&
+                  topeDelRango !== null &&
+                  punto > (inicio as number) &&
+                  punto <= topeDelRango;
+
+                const habilitado = eligiendoFin ? sirveComoFin || punto <= (inicio as number) : sirveComoInicio;
+
+                const esExtremo = punto === inicio || punto === fin;
+                const dentro =
+                  rango !== null && punto > rango.inicio && punto < rango.fin;
+
+                // Tachamos solo lo que está realmente reservado. Un horario que
+                // no sirve por otra razón (el cierre, o que quedó fuera del
+                // rango) va en gris, sin tachar: tachado se lee como "ocupado".
+                const todoOcupado =
+                  punto + disponibilidad.pasoMin <= disponibilidad.cierreMin &&
+                  lugares.every((lugar) =>
+                    ocupado(
+                      disponibilidad.ocupados[lugar.id] ?? [],
+                      punto,
+                      punto + disponibilidad.pasoMin,
+                    ),
+                  );
+
+                return (
+                  <button
+                    key={punto}
+                    type="button"
+                    disabled={!habilitado}
+                    onClick={() => tocarPunto(punto)}
+                    title={todoOcupado ? "Ya está reservado" : formatearHora(punto)}
+                    className={`rounded-lg border py-2 text-sm font-medium transition ${
+                      esExtremo
+                        ? "border-marian bg-marian text-white"
+                        : dentro
+                          ? "border-marian/40 bg-marian-soft text-marian-dark"
+                          : habilitado
+                            ? "border-borde bg-white text-tinta hover:border-marian hover:bg-marian-soft"
+                            : `cursor-not-allowed border-borde bg-slate-100 text-slate-400 ${
+                                todoOcupado ? "line-through" : ""
+                              }`
+                    }`}
+                  >
+                    {formatearHora(punto)}
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
 
-        {horaElegida !== null && (
-          <p className="mt-4 rounded-xl bg-marian-soft p-3 text-sm text-marian-dark">
-            Reservás de <strong>{formatearHora(horaElegida)}</strong> a{" "}
-            <strong>{formatearHora(horaElegida + duracion)}</strong>.
-          </p>
+        {rango && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-marian-soft p-3 text-sm text-marian-dark">
+            <span>
+              De <strong>{formatearHora(rango.inicio)}</strong> a{" "}
+              <strong>{formatearHora(rango.fin)}</strong> ({duracionEnPalabras(rango.fin - rango.inicio)})
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setInicio(null);
+                setFin(null);
+              }}
+              className="text-xs font-medium underline underline-offset-2"
+            >
+              Cambiar
+            </button>
+          </div>
         )}
       </section>
 
-      {/* Paso 3: los datos */}
+      {/* Paso 3: los lugares */}
       <section className="tarjeta p-6">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-marian-dark">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-marian text-xs font-bold text-white">
-            3
-          </span>
+        <h2 className={titulo}>
+          <span className={paso}>3</span>
+          ¿Qué lugar necesitás?
+        </h2>
+
+        <p className="mt-2 text-sm text-tinta/60">
+          Podés elegir más de uno.
+        </p>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          {lugares.map((lugar) => {
+            const libre = lugaresLibres.includes(lugar.id);
+            const activo = seleccionados.includes(lugar.id);
+
+            return (
+              <button
+                key={lugar.id}
+                type="button"
+                disabled={!rango || !libre}
+                onClick={() => alternarLugar(lugar.id)}
+                className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${
+                  activo
+                    ? "border-marian bg-marian text-white"
+                    : rango && libre
+                      ? "border-borde bg-white text-tinta hover:border-marian hover:bg-marian-soft"
+                      : "cursor-not-allowed border-borde bg-slate-100 text-slate-400"
+                }`}
+              >
+                <span className="block">{lugar.nombre}</span>
+                {rango && !libre && (
+                  <span className="mt-0.5 block text-xs font-normal">Ocupado a esa hora</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="mt-4 text-sm">
+          {!rango ? (
+            <span className="text-tinta/50">Elegí primero el horario.</span>
+          ) : seleccionados.length === 0 ? (
+            <span className="text-tinta/50">Todavía no elegiste ningún lugar.</span>
+          ) : (
+            <span className="text-marian-dark">
+              Elegiste:{" "}
+              <strong>
+                {enumerar(
+                  seleccionados.map(
+                    (id) => lugares.find((lugar) => lugar.id === id)?.nombre ?? id,
+                  ),
+                )}
+              </strong>
+            </span>
+          )}
+        </p>
+      </section>
+
+      {/* Paso 4: los datos */}
+      <section className="tarjeta p-6">
+        <h2 className={titulo}>
+          <span className={paso}>4</span>
           ¿A nombre de quién?
         </h2>
 
@@ -437,16 +575,15 @@ export default function BookingForm({
         </div>
 
         <label className="mt-4 block">
-          <span className="mb-1 block text-sm font-medium text-tinta/70">
-            Motivo <span className="font-normal text-tinta/40">(opcional)</span>
-          </span>
+          <span className="mb-1 block text-sm font-medium text-tinta/70">Motivo</span>
           <input
             type="text"
             value={motivo}
             onChange={(e) => setMotivo(e.target.value)}
             className="campo"
-            placeholder="Ej: misa de acción de gracias, retiro, oración en familia"
+            placeholder="Ej: misa de acción de gracias, retiro, reunión de rama"
             maxLength={200}
+            required
           />
         </label>
 
@@ -488,13 +625,15 @@ export default function BookingForm({
       >
         {enviando
           ? "Guardando la reserva…"
-          : horaElegida === null
+          : !rango
             ? "Elegí un horario para continuar"
-            : `Reservar el ${santuario}`}
+            : seleccionados.length === 0
+              ? "Elegí al menos un lugar"
+              : "Confirmar reserva"}
       </button>
 
       <p className="pb-4 text-center text-xs text-tinta/50">
-        La reserva se agenda al instante en el calendario del santuario.
+        La reserva se agenda al instante en el calendario.
       </p>
     </form>
   );

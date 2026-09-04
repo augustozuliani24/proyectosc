@@ -3,7 +3,8 @@ import {
   APERTURA_MIN,
   CIERRE_MIN,
   DIAS_CERRADOS,
-  DURACIONES,
+  DURACION_MAX_MIN,
+  IDS_LUGARES,
   MAX_DIAS_ANTICIPACION,
   PASO_MIN,
   TIMEZONE,
@@ -24,6 +25,9 @@ export interface Bloque {
   finMin: number;
 }
 
+/** Bloques ocupados de cada lugar: { santuario: [...], zoom: [...] } */
+export type OcupacionPorLugar = Record<string, Bloque[]>;
+
 export type MotivoRechazo =
   | "fecha_invalida"
   | "fecha_pasada"
@@ -32,7 +36,10 @@ export type MotivoRechazo =
   | "fuera_de_horario"
   | "horario_invalido"
   | "duracion_invalida"
-  | "muy_sobre_la_hora";
+  | "muy_larga"
+  | "muy_sobre_la_hora"
+  | "sin_lugar"
+  | "lugar_invalido";
 
 export const MENSAJES: Record<MotivoRechazo, string> = {
   fecha_invalida: "La fecha no es válida.",
@@ -41,8 +48,11 @@ export const MENSAJES: Record<MotivoRechazo, string> = {
   dia_cerrado: "Ese día no se toman reservas.",
   fuera_de_horario: "El horario elegido queda fuera del horario en que se puede reservar.",
   horario_invalido: "El horario elegido no es válido.",
-  duracion_invalida: "La duración elegida no está disponible.",
+  duracion_invalida: "La hora de fin tiene que ser posterior a la de inicio.",
+  muy_larga: `Una reserva no puede durar más de ${DURACION_MAX_MIN / 60} horas.`,
   muy_sobre_la_hora: "Ese horario está demasiado cerca. Elegí uno un poco más tarde.",
+  sin_lugar: "Elegí al menos un lugar para reservar.",
+  lugar_invalido: "Alguno de los lugares elegidos no existe.",
 };
 
 /** Fecha de hoy en la zona del santuario. */
@@ -67,27 +77,16 @@ export function minimoInicio(fecha: string, ahora: Date = new Date()): number {
   return Math.max(APERTURA_MIN, redondeado);
 }
 
-/**
- * Pasa los eventos del calendario a bloques ocupados del día, recortados al día
- * y fusionando los que se superponen.
- */
-export function bloquesOcupados(eventos: EventoCalendario[], fecha: string): Bloque[] {
-  const inicioDia = aInstanteUTC(fecha, 0, TIMEZONE).getTime();
-  const finDia = aInstanteUTC(fecha, 24 * 60, TIMEZONE).getTime();
-
-  const bloques: Bloque[] = [];
-
-  for (const evento of eventos) {
-    const desde = Math.max(evento.inicio.getTime(), inicioDia);
-    const hasta = Math.min(evento.fin.getTime(), finDia);
-    if (hasta <= desde) continue;
-
-    bloques.push({
-      inicioMin: Math.floor((desde - inicioDia) / 60000),
-      finMin: Math.ceil((hasta - inicioDia) / 60000),
-    });
+/** Todos los horarios de la grilla, de la apertura al cierre inclusive. */
+export function puntosDelDia(): number[] {
+  const puntos: number[] = [];
+  for (let minuto = APERTURA_MIN; minuto <= CIERRE_MIN; minuto += PASO_MIN) {
+    puntos.push(minuto);
   }
+  return puntos;
+}
 
+function fusionar(bloques: Bloque[]): Bloque[] {
   bloques.sort((a, b) => a.inicioMin - b.inicioMin);
 
   const fusionados: Bloque[] = [];
@@ -103,45 +102,61 @@ export function bloquesOcupados(eventos: EventoCalendario[], fecha: string): Blo
   return fusionados;
 }
 
-/** true si el rango pedido pisa algún bloque ocupado. */
-export function haySuperposicion(ocupados: Bloque[], inicioMin: number, finMin: number): boolean {
-  return ocupados.some((bloque) => inicioMin < bloque.finMin && finMin > bloque.inicioMin);
-}
+/**
+ * Pasa los eventos del calendario a bloques ocupados por lugar, recortados al
+ * día y fusionando los que se superponen.
+ */
+export function ocupacionDelDia(eventos: EventoCalendario[], fecha: string): OcupacionPorLugar {
+  const inicioDia = aInstanteUTC(fecha, 0, TIMEZONE).getTime();
+  const finDia = aInstanteUTC(fecha, 24 * 60, TIMEZONE).getTime();
 
-/** Todos los horarios de inicio posibles de un día, sin mirar el calendario. */
-export function horariosPosibles(fecha: string, ahora: Date = new Date()): number[] {
-  const minimo = minimoInicio(fecha, ahora);
-  const duracionMinima = Math.min(...DURACIONES);
-  const horarios: number[] = [];
+  const porLugar: OcupacionPorLugar = {};
+  for (const id of IDS_LUGARES) porLugar[id] = [];
 
-  for (let minuto = APERTURA_MIN; minuto + duracionMinima <= CIERRE_MIN; minuto += PASO_MIN) {
-    if (minuto >= minimo) horarios.push(minuto);
+  for (const evento of eventos) {
+    const desde = Math.max(evento.inicio.getTime(), inicioDia);
+    const hasta = Math.min(evento.fin.getTime(), finDia);
+    if (hasta <= desde) continue;
+
+    const bloque: Bloque = {
+      inicioMin: Math.floor((desde - inicioDia) / 60000),
+      finMin: Math.ceil((hasta - inicioDia) / 60000),
+    };
+
+    for (const id of evento.lugares) {
+      if (porLugar[id]) porLugar[id].push({ ...bloque });
+    }
   }
 
-  return horarios;
+  for (const id of IDS_LUGARES) porLugar[id] = fusionar(porLugar[id]);
+
+  return porLugar;
+}
+
+/** true si el rango pisa algún bloque ocupado. */
+export function haySuperposicion(bloques: Bloque[], inicioMin: number, finMin: number): boolean {
+  return bloques.some((bloque) => inicioMin < bloque.finMin && finMin > bloque.inicioMin);
+}
+
+/** Los lugares de la lista que están libres en todo el rango pedido. */
+export function lugaresLibres(
+  ocupacion: OcupacionPorLugar,
+  inicioMin: number,
+  finMin: number,
+  candidatos: string[] = IDS_LUGARES,
+): string[] {
+  return candidatos.filter((id) => !haySuperposicion(ocupacion[id] ?? [], inicioMin, finMin));
 }
 
 /**
- * Primer día que conviene mostrar al abrir la página: hoy si todavía queda
- * algún horario, y si no el próximo día que esté abierto.
+ * Valida un pedido de reserva contra las reglas del santuario, sin mirar el
+ * calendario (de eso se encarga quien llama, con la ocupación del día).
  */
-export function primeraFechaReservable(ahora: Date = new Date()): string {
-  let fecha = hoyLocal(ahora);
-
-  for (let intento = 0; intento < 14; intento += 1) {
-    const abierto = !DIAS_CERRADOS.includes(diaDeLaSemana(fecha, TIMEZONE));
-    if (abierto && horariosPosibles(fecha, ahora).length > 0) return fecha;
-    fecha = sumarDias(fecha, 1);
-  }
-
-  return hoyLocal(ahora);
-}
-
-/** Valida un pedido de reserva contra las reglas del santuario (no contra el calendario). */
 export function validarPedido(
   fecha: string,
   inicioMin: number,
-  duracionMin: number,
+  finMin: number,
+  lugares: string[],
   ahora: Date = new Date(),
 ): MotivoRechazo | null {
   if (!esFechaValida(fecha)) return "fecha_invalida";
@@ -153,12 +168,33 @@ export function validarPedido(
 
   if (DIAS_CERRADOS.includes(diaDeLaSemana(fecha, TIMEZONE))) return "dia_cerrado";
 
-  if (!DURACIONES.includes(duracionMin)) return "duracion_invalida";
+  if (lugares.length === 0) return "sin_lugar";
+  if (lugares.some((id) => !IDS_LUGARES.includes(id))) return "lugar_invalido";
 
-  if (!Number.isInteger(inicioMin) || inicioMin % PASO_MIN !== 0) return "horario_invalido";
-  if (inicioMin < APERTURA_MIN || inicioMin + duracionMin > CIERRE_MIN) return "fuera_de_horario";
+  if (!Number.isInteger(inicioMin) || !Number.isInteger(finMin)) return "horario_invalido";
+  if (inicioMin % PASO_MIN !== 0 || finMin % PASO_MIN !== 0) return "horario_invalido";
 
+  if (finMin <= inicioMin) return "duracion_invalida";
+  if (finMin - inicioMin > DURACION_MAX_MIN) return "muy_larga";
+
+  if (inicioMin < APERTURA_MIN || finMin > CIERRE_MIN) return "fuera_de_horario";
   if (inicioMin < minimoInicio(fecha, ahora)) return "muy_sobre_la_hora";
 
   return null;
+}
+
+/**
+ * Primer día que conviene mostrar al abrir la página: hoy si todavía queda
+ * algún horario, y si no el próximo día que esté abierto.
+ */
+export function primeraFechaReservable(ahora: Date = new Date()): string {
+  let fecha = hoyLocal(ahora);
+
+  for (let intento = 0; intento < 14; intento += 1) {
+    const abierto = !DIAS_CERRADOS.includes(diaDeLaSemana(fecha, TIMEZONE));
+    if (abierto && minimoInicio(fecha, ahora) + PASO_MIN <= CIERRE_MIN) return fecha;
+    fecha = sumarDias(fecha, 1);
+  }
+
+  return hoyLocal(ahora);
 }
