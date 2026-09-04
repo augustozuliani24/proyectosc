@@ -10,17 +10,15 @@ import {
 import {
   CalendarioError,
   borrarEvento,
-  calendarioConfigurado,
   crearReserva,
   listarEventos,
   listarEventosDelDia,
 } from "@/lib/google-calendar";
+import { modoDemo } from "@/lib/modo";
 import { aInstanteUTC, fechaEnPalabras, formatearHora, parsearHora } from "@/lib/time";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const MODO_DEMO = process.env.RESERVAS_MODO_DEMO === "1";
 
 interface Cuerpo {
   fecha?: unknown;
@@ -80,27 +78,22 @@ export async function POST(request: Request) {
 
   const finMin = inicioMin + duracionMin;
 
-  if (!calendarioConfigurado()) {
-    if (MODO_DEMO) {
-      return NextResponse.json({
-        ok: true,
+  // En demostración devolvemos una confirmación falsa, que la página muestra
+  // bien marcada como tal, y no tocamos el calendario.
+  if (modoDemo()) {
+    return NextResponse.json({
+      ok: true,
+      reserva: {
+        id: "demo",
         demo: true,
-        reserva: {
-          id: "demo",
-          fecha,
-          fechaTexto: fechaEnPalabras(fecha, TIMEZONE),
-          horaInicio: formatearHora(inicioMin),
-          horaFin: formatearHora(finMin),
-          nombre,
-          lugar: SANTUARIO_NOMBRE,
-        },
-      });
-    }
-    return error(
-      "sin_configurar",
-      "Todavía no está conectada la agenda del santuario. Escribinos por WhatsApp y lo coordinamos.",
-      503,
-    );
+        fecha,
+        fechaTexto: fechaEnPalabras(fecha, TIMEZONE),
+        horaInicio: formatearHora(inicioMin),
+        horaFin: formatearHora(finMin),
+        nombre,
+        lugar: SANTUARIO_NOMBRE,
+      },
+    });
   }
 
   try {

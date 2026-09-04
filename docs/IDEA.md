@@ -75,7 +75,8 @@ Son trámites ligados a las cuentas del movimiento, no se pueden hacer desde el 
 2. Dar de alta el número en WhatsApp Cloud API dentro de Meta Business Manager, con la
    verificación del negocio, y activar Coexistence escaneando el QR desde el celular.
 
-La página funciona sin el punto 2: mientras tanto el link se puede pasar a mano.
+La página funciona sin el punto 2: mientras tanto el link se puede pasar a mano. Y sin el
+punto 1 también se puede ver y navegar, en modo demostración, sin guardar nada.
 
 ## Pendiente de definir
 

@@ -16,14 +16,12 @@ import {
   horariosPosibles,
   minimoInicio,
 } from "@/lib/disponibilidad";
-import { CalendarioError, calendarioConfigurado, listarEventosDelDia } from "@/lib/google-calendar";
+import { CalendarioError, listarEventosDelDia } from "@/lib/google-calendar";
+import { modoDemo } from "@/lib/modo";
 import { diaDeLaSemana, esFechaValida, fechaEnPalabras } from "@/lib/time";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-/** Modo de prueba: permite usar la página sin haber configurado Google todavía. */
-const MODO_DEMO = process.env.RESERVAS_MODO_DEMO === "1";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -54,26 +52,17 @@ export async function GET(request: Request) {
     fechaMaxima: fechaMaxima(ahora),
     maxDias: MAX_DIAS_ANTICIPACION,
     diaCerrado,
-    demo: MODO_DEMO,
+    demo: modoDemo(),
   };
 
   if (diaCerrado) {
     return NextResponse.json({ ...base, ocupados: [] });
   }
 
-  if (!calendarioConfigurado()) {
-    if (MODO_DEMO) {
-      return NextResponse.json({ ...base, ocupados: [] });
-    }
-    return NextResponse.json(
-      {
-        ok: false,
-        codigo: "sin_configurar",
-        mensaje:
-          "Todavía no está conectado el Google Calendar del santuario. Escribinos por WhatsApp y lo coordinamos.",
-      },
-      { status: 503 },
-    );
+  // En demostración mostramos el día entero libre, con el cartel correspondiente:
+  // sirve para ver la página antes de tener las credenciales de Google.
+  if (modoDemo()) {
+    return NextResponse.json({ ...base, ocupados: [] });
   }
 
   try {

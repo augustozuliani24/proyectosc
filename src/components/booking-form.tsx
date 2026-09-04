@@ -22,6 +22,7 @@ interface Disponibilidad {
 
 interface Reserva {
   id: string;
+  demo?: boolean;
   fecha: string;
   fechaTexto: string;
   horaInicio: string;
@@ -216,11 +217,21 @@ export default function BookingForm({
   if (reserva) {
     return (
       <div className="tarjeta animar-entrada p-8 text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-marian-soft text-3xl text-marian">
-          ✓
+        <div
+          className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full text-3xl ${
+            reserva.demo ? "bg-amber-100 text-amber-700" : "bg-marian-soft text-marian"
+          }`}
+        >
+          {reserva.demo ? "👁" : "✓"}
         </div>
-        <h2 className="text-2xl font-semibold text-marian-dark">¡Reserva confirmada!</h2>
-        <p className="mt-2 text-tinta/70">Ya quedó agendada en el calendario del santuario.</p>
+        <h2 className="text-2xl font-semibold text-marian-dark">
+          {reserva.demo ? "Así se vería la confirmación" : "¡Reserva confirmada!"}
+        </h2>
+        <p className="mt-2 text-tinta/70">
+          {reserva.demo
+            ? "Esto es una demostración: la reserva no se guardó en ningún lado."
+            : "Ya quedó agendada en el calendario del santuario."}
+        </p>
 
         <dl className="mx-auto mt-6 max-w-sm space-y-2 rounded-xl bg-marian-soft/60 p-5 text-left text-sm">
           <div className="flex justify-between gap-4">

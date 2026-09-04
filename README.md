@@ -90,14 +90,21 @@ npm install
 npm run dev     # http://localhost:3000
 ```
 
-Para probar la página sin haber configurado Google todavía:
+### Modo demostración
+
+Si faltan las credenciales de Google, la página **entra sola en modo demostración**: se
+puede navegar y usar el formulario, todos los horarios aparecen libres, y tanto el
+formulario como la pantalla final avisan que la reserva no se guardó en ningún lado. Sirve
+para mostrar el sitio antes de tener el calendario conectado.
+
+Se apaga solo en cuanto las tres variables de Google están cargadas — no hay ningún
+interruptor que pueda quedar mal puesto en producción.
+
+Para forzarlo aunque el calendario esté conectado (probar sin ensuciar la agenda real):
 
 ```bash
 RESERVAS_MODO_DEMO=1 npm run dev
 ```
-
-En modo demo todo aparece libre y las reservas no se guardan en ningún lado; la página lo
-avisa con un cartel.
 
 ## Estructura
 
