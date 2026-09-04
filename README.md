@@ -60,13 +60,25 @@ por defecto razonables. Está todo explicado en `.env.example`.
 
 ### 3. Deploy en Vercel
 
+Ya está hecho: el proyecto **`reservas-santuario`** está enlazado a este repositorio, así
+que **cada push a la rama `claude/chay-page-idea-dr514j` (la rama de producción) se
+despliega solo**. No hay que correr ningún comando para publicar.
+
+- Sitio: <https://reservas-santuario-augustozuliani24.vercel.app>
+- Panel: <https://vercel.com/augustozuliani24/reservas-santuario>
+
+Las variables de entorno se cargan en el panel, en *Settings → Environment Variables*, y
+recién se aplican en el deploy siguiente. Mientras falten las de Google, el sitio queda en
+modo demostración (ver más abajo).
+
+El plan gratuito (Hobby) alcanza de sobra para este volumen.
+
+Para compilar en tu máquina antes de pushear:
+
 ```bash
 npm install
 npm run build
 ```
-
-Después, importar el repo en Vercel y cargar ahí las mismas variables de entorno.
-El plan gratuito (Hobby) alcanza de sobra para este volumen.
 
 ### 4. WhatsApp (opcional, se puede dejar para el final)
 
