@@ -41,7 +41,7 @@ export const SANTUARIO_NOMBRE = process.env.SANTUARIO_NOMBRE ?? "Santuario de Sc
  */
 export const LUGARES: Lugar[] = lugares(process.env.SANTUARIO_LUGARES, [
   { id: "santuario", nombre: "Santuario" },
-  { id: "zoom", nombre: "Zoom" },
+  { id: "sum", nombre: "SUM" },
   { id: "cocina", nombre: "Cocina" },
 ]);
 
@@ -57,9 +57,6 @@ export const CIERRE_MIN = num(process.env.SANTUARIO_CIERRE_HORA, 22) * 60;
 
 /** Cada cuántos minutos cae un horario en la grilla (inicio y fin). */
 export const PASO_MIN = num(process.env.SANTUARIO_PASO_MINUTOS, 30);
-
-/** Duración máxima de una reserva, en minutos. */
-export const DURACION_MAX_MIN = num(process.env.SANTUARIO_DURACION_MAXIMA_MINUTOS, 12 * 60);
 
 /** Con cuántos días de anticipación como máximo se puede reservar. */
 export const MAX_DIAS_ANTICIPACION = num(process.env.SANTUARIO_MAX_DIAS, 90);

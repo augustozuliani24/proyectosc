@@ -16,7 +16,12 @@ de siempre, sin aprender ninguna herramienta nueva.
    si es una consulta (**la contesta una persona, el bot no se mete**), o entrar al link
    si quiere reservar.
 3. En la página elige el día, toca la hora de inicio y la de fin, y marca qué lugares
-   necesita. Lo que ya está reservado aparece tachado, así no prueba a ciegas.
+   necesita. Lo que ya está reservado aparece tachado, así no prueba a ciegas. Tocando de
+   nuevo una hora ya elegida, la suelta.
+
+   No hay duración mínima ni máxima más allá del horario del día: se puede reservar media
+   hora o de la apertura al cierre. Lo que no se puede es cruzar de un día a otro — para
+   dos días seguidos hay que hacer dos reservas.
 4. Al confirmar, el servidor vuelve a chequear el calendario y crea el evento. Si en el
    medio alguien tomó ese horario, la reserva se rechaza y se le muestra qué quedó libre.
 
@@ -25,7 +30,7 @@ en manos de la persona que atiende el número.
 
 ## Los lugares
 
-Se pueden reservar varios espacios independientes — por defecto **Santuario**, **Zoom** y
+Se pueden reservar varios espacios independientes — por defecto **Santuario**, **SUM** y
 **Cocina** — y una misma persona puede tomar uno, dos o los tres en el mismo horario. Cada
 lugar tiene su disponibilidad propia: que el Santuario esté ocupado a las 10 no impide que
 alguien reserve la Cocina a las 10.
@@ -41,6 +46,13 @@ los tres. Es a propósito — ante la duda prefiere rechazar una reserva de más
 superponer dos. Así que conviene nombrar el lugar en el título de los eventos manuales.
 
 La lista de lugares se cambia con `SANTUARIO_LUGARES` sin tocar código.
+
+## El teléfono
+
+Se pide como `351 555 1234`: diez números, con la característica y sin el 0 ni el 15. El
+campo los va acomodando solo mientras se escribe, y tolera que peguen el `+54` o el `0` de
+adelante. La misma regla corre en el servidor (`src/lib/telefono.ts`), así que no alcanza
+con editar la página para saltearla.
 
 ## Puesta en marcha
 
@@ -153,6 +165,7 @@ src/
     time.ts                        fechas y horas con zona horaria explícita
     disponibilidad.ts              reglas de qué se puede reservar, y ocupación por lugar
     google-calendar.ts             lectura y escritura del calendario
+    telefono.ts                    formato y validación del teléfono
     whatsapp.ts                    envío de mensajes y validación de firma
 docs/
   IDEA.md                          para qué es esto y por qué está hecho así

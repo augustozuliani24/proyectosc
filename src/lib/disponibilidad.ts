@@ -3,7 +3,6 @@ import {
   APERTURA_MIN,
   CIERRE_MIN,
   DIAS_CERRADOS,
-  DURACION_MAX_MIN,
   IDS_LUGARES,
   MAX_DIAS_ANTICIPACION,
   PASO_MIN,
@@ -36,7 +35,6 @@ export type MotivoRechazo =
   | "fuera_de_horario"
   | "horario_invalido"
   | "duracion_invalida"
-  | "muy_larga"
   | "muy_sobre_la_hora"
   | "sin_lugar"
   | "lugar_invalido";
@@ -49,7 +47,6 @@ export const MENSAJES: Record<MotivoRechazo, string> = {
   fuera_de_horario: "El horario elegido queda fuera del horario en que se puede reservar.",
   horario_invalido: "El horario elegido no es válido.",
   duracion_invalida: "La hora de fin tiene que ser posterior a la de inicio.",
-  muy_larga: `Una reserva no puede durar más de ${DURACION_MAX_MIN / 60} horas.`,
   muy_sobre_la_hora: "Ese horario está demasiado cerca. Elegí uno un poco más tarde.",
   sin_lugar: "Elegí al menos un lugar para reservar.",
   lugar_invalido: "Alguno de los lugares elegidos no existe.",
@@ -151,6 +148,9 @@ export function lugaresLibres(
 /**
  * Valida un pedido de reserva contra las reglas del santuario, sin mirar el
  * calendario (de eso se encarga quien llama, con la ocupación del día).
+ *
+ * No hay tope de duración: se puede tomar el día entero. Lo que sí no se puede
+ * es cruzar de un día a otro, porque el fin nunca pasa del horario de cierre.
  */
 export function validarPedido(
   fecha: string,
@@ -175,7 +175,6 @@ export function validarPedido(
   if (inicioMin % PASO_MIN !== 0 || finMin % PASO_MIN !== 0) return "horario_invalido";
 
   if (finMin <= inicioMin) return "duracion_invalida";
-  if (finMin - inicioMin > DURACION_MAX_MIN) return "muy_larga";
 
   if (inicioMin < APERTURA_MIN || finMin > CIERRE_MIN) return "fuera_de_horario";
   if (inicioMin < minimoInicio(fecha, ahora)) return "muy_sobre_la_hora";

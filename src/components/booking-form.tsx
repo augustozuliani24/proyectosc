@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { digitosTelefono, formatearTelefono } from "@/lib/telefono";
+
 interface Bloque {
   inicioMin: number;
   finMin: number;
@@ -18,7 +20,6 @@ interface Disponibilidad {
   aperturaMin: number;
   cierreMin: number;
   pasoMin: number;
-  duracionMaxMin: number;
   minimoInicioMin: number;
   puntos: number[];
   lugares: Lugar[];
@@ -154,7 +155,9 @@ export default function BookingForm({
    */
   const topeDelRango = useMemo(() => {
     if (!disponibilidad || inicio === null) return null;
-    const tope = Math.min(disponibilidad.cierreMin, inicio + disponibilidad.duracionMaxMin);
+    // Sin tope de duración: se puede tomar hasta el cierre, o hasta donde
+    // empiece la próxima reserva.
+    const tope = disponibilidad.cierreMin;
     return Math.max(
       ...lugares.map((lugar) =>
         extensionLibre(disponibilidad.ocupados[lugar.id] ?? [], inicio, tope),
@@ -185,7 +188,7 @@ export default function BookingForm({
     rango !== null &&
     seleccionados.length > 0 &&
     nombre.trim().length >= 2 &&
-    telefono.trim().length >= 6 &&
+    digitosTelefono(telefono).length === 10 &&
     motivo.trim().length >= 3 &&
     !enviando;
 
@@ -196,19 +199,37 @@ export default function BookingForm({
     setErrorEnvio(null);
   }
 
-  /** Primer toque: hora de inicio. Segundo: hora de fin. */
+  /**
+   * Primer toque: hora de inicio. Segundo: hora de fin. Y tocar de nuevo una
+   * hora ya elegida la suelta, para poder corregir sin empezar todo de cero.
+   */
   function tocarPunto(punto: number) {
     setErrorEnvio(null);
-    if (inicio === null || fin !== null) {
-      setInicio(punto);
-      setFin(null);
+
+    // Con el rango ya armado: tocar un extremo lo suelta, tocar otra hora
+    // arranca una selección nueva.
+    if (inicio !== null && fin !== null) {
+      if (punto === fin) {
+        setFin(null);
+      } else if (punto === inicio) {
+        setInicio(null);
+        setFin(null);
+      } else {
+        setInicio(punto);
+        setFin(null);
+      }
       return;
     }
-    if (punto <= inicio) {
-      setInicio(punto);
+
+    // Con solo el inicio elegido.
+    if (inicio !== null) {
+      if (punto === inicio) setInicio(null);
+      else if (punto < inicio) setInicio(punto);
+      else setFin(punto);
       return;
     }
-    setFin(punto);
+
+    setInicio(punto);
   }
 
   function alternarLugar(id: string) {
@@ -368,10 +389,10 @@ export default function BookingForm({
 
         <p className="mt-2 text-sm text-tinta/60">
           {rango
-            ? "¿Te equivocaste? Tocá cualquier hora para empezar de nuevo."
+            ? "Tocá una hora marcada para soltarla, o cualquier otra para empezar de nuevo."
             : inicio === null
               ? "Tocá la hora en la que empezás."
-              : `Empezás a las ${formatearHora(inicio)}. Ahora tocá la hora en la que terminás.`}
+              : `Empezás a las ${formatearHora(inicio)}. Tocá la hora en la que terminás, o tocá ${formatearHora(inicio)} de nuevo para soltarla.`}
         </p>
 
         <div className="mt-4">
@@ -414,9 +435,15 @@ export default function BookingForm({
                   punto > (inicio as number) &&
                   punto <= topeDelRango;
 
-                const habilitado = eligiendoFin ? sirveComoFin || punto <= (inicio as number) : sirveComoInicio;
-
                 const esExtremo = punto === inicio || punto === fin;
+
+                // Los extremos siempre responden al toque: es la forma de
+                // soltarlos si se eligieron por error.
+                const habilitado = esExtremo
+                  ? true
+                  : eligiendoFin
+                    ? sirveComoFin || (punto < (inicio as number) && sirveComoInicio)
+                    : sirveComoInicio;
                 const dentro =
                   rango !== null && punto > rango.inicio && punto < rango.fin;
 
@@ -564,13 +591,16 @@ export default function BookingForm({
             <span className="mb-1 block text-sm font-medium text-tinta/70">Teléfono</span>
             <input
               type="tel"
+              inputMode="numeric"
               value={telefono}
-              onChange={(e) => setTelefono(e.target.value)}
+              onChange={(e) => setTelefono(formatearTelefono(e.target.value))}
               className="campo"
-              placeholder="Ej: 351 555 1234"
-              maxLength={30}
+              placeholder="351 555 1234"
               required
             />
+            <span className="mt-1 block text-xs text-tinta/50">
+              Diez números, con la característica y sin el 0 ni el 15.
+            </span>
           </label>
         </div>
 

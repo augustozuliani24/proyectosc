@@ -15,6 +15,7 @@ import {
   listarEventosDelDia,
 } from "@/lib/google-calendar";
 import { modoDemo } from "@/lib/modo";
+import { formatearTelefono, telefonoValido } from "@/lib/telefono";
 import { aInstanteUTC, fechaEnPalabras, formatearHora, parsearHora } from "@/lib/time";
 
 export const runtime = "nodejs";
@@ -65,8 +66,12 @@ export async function POST(request: Request) {
   if (nombre.length < 2) {
     return error("nombre_invalido", "Escribí a nombre de quién va la reserva.", 400);
   }
-  if (!/^[\d\s+()-]{6,30}$/.test(telefono)) {
-    return error("telefono_invalido", "Escribí un teléfono de contacto válido.", 400);
+  if (!telefonoValido(telefono)) {
+    return error(
+      "telefono_invalido",
+      "El teléfono tiene que tener diez números, con la característica y sin el 0 ni el 15. Por ejemplo: 351 555 1234.",
+      400,
+    );
   }
   if (motivo.length < 3) {
     return error("motivo_invalido", "Contanos brevemente para qué es la reserva.", 400);
@@ -122,7 +127,7 @@ export async function POST(request: Request) {
       finMin,
       lugares,
       nombre,
-      telefono,
+      telefono: formatearTelefono(telefono),
       motivo,
     });
 

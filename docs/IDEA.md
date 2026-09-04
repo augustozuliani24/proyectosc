@@ -33,11 +33,15 @@ tiene costo por mensaje, es impredecible y no hace falta. Un mensaje automático
 link resuelve lo mismo con lógica simple y gratis.
 
 **Horario libre, no franjas fijas.** La persona toca la hora de inicio y la de fin sobre
-una grilla de media hora, así una reserva puede ir de 9:00 a 9:30 o de 15:00 a 21:00 sin
-que haya que anticipar qué duraciones ofrecer. La grilla solo deja llegar hasta donde
-empieza la próxima reserva.
+una grilla de media hora, así una reserva puede ir de 9:00 a 9:30 o durar el día entero,
+sin que haya que anticipar qué duraciones ofrecer. La grilla solo deja llegar hasta donde
+empieza la próxima reserva, y tocando de nuevo una hora elegida se suelta.
 
-**Varios lugares, una sola agenda.** Se reservan Santuario, Zoom y Cocina por separado, y
+No hay tope de duración a propósito: el único límite es el horario de apertura y cierre,
+que de paso impide que una reserva cruce de un día a otro. Quien necesite dos días
+seguidos hace dos reservas, y así cada día queda visible por separado en el calendario.
+
+**Varios lugares, una sola agenda.** Se reservan Santuario, SUM y Cocina por separado, y
 una persona puede tomar los que necesite a la vez. Todo va a un mismo Google Calendar
 (para no obligar a manejar tres), y cada evento anota qué lugares ocupa. Los eventos
 cargados a mano se interpretan por el título, y si no nombran ningún lugar se asume que
