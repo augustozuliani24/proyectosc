@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+
+  --color-marian: #23508f;
+  --color-marian-dark: #17385f;
+  --color-marian-soft: #e8eefa;
+  --color-dorado: #c08a2e;
+  --color-crema: #fbf8f2;
+  --color-tinta: #1f2a37;
+  --color-borde: #dfe6f1;
+}
+
+body {
+  background:
+    radial-gradient(1200px 420px at 50% -180px, #dbe6f7 0%, transparent 70%),
+    linear-gradient(180deg, #eef3fb 0%, var(--color-crema) 520px);
+  min-height: 100vh;
+  color: var(--color-tinta);
+}
+
+/* Los <input type="date" | "text"> nativos con un look consistente. */
+.campo {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-borde);
+  background: white;
+  padding: 0.65rem 0.85rem;
+  font-size: 1rem;
+  color: var(--color-tinta);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.campo:focus {
+  border-color: var(--color-marian);
+  box-shadow: 0 0 0 3px rgba(35, 80, 143, 0.15);
+}
+
+.tarjeta {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--color-borde);
+  border-radius: 1.25rem;
+  box-shadow: 0 10px 30px -18px rgba(23, 56, 95, 0.45);
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animar-entrada {
+  animation: aparecer 0.35s ease both;
+}
