@@ -51,9 +51,71 @@ export function nombreDeLugar(id: string): string {
   return LUGARES.find((lugar) => lugar.id === id)?.nombre ?? id;
 }
 
-/** Horario en el que se puede reservar, en minutos desde la medianoche. */
+/** Horario general en el que se puede reservar, en minutos desde la medianoche. */
 export const APERTURA_MIN = num(process.env.SANTUARIO_APERTURA_HORA, 8) * 60;
 export const CIERRE_MIN = num(process.env.SANTUARIO_CIERRE_HORA, 22) * 60;
+
+export interface Horario {
+  aperturaMin: number;
+  cierreMin: number;
+}
+
+function minutosDeHora(texto: string): number | null {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(texto.trim());
+  if (!match) return null;
+  const horas = Number(match[1]);
+  const minutos = Number(match[2]);
+  if (horas < 0 || horas > 24 || minutos < 0 || minutos > 59) return null;
+  return horas * 60 + minutos;
+}
+
+/**
+ * Días con un horario distinto al general, como "0:13:30-22:00" para que los
+ * domingos recién se pueda reservar desde las 13:30. El día va de 0 (domingo)
+ * a 6 (sábado) y se pueden encadenar varios separados por comas.
+ */
+function horariosEspeciales(value: string | undefined, fallback: string): Record<number, Horario> {
+  const horarios: Record<number, Horario> = {};
+
+  for (const item of (value ?? fallback).split(",")) {
+    const texto = item.trim();
+    const corte = texto.indexOf(":");
+    if (corte < 0) continue;
+
+    const numeroDia = Number(texto.slice(0, corte));
+    const rango = texto.slice(corte + 1);
+    if (!Number.isInteger(numeroDia) || numeroDia < 0 || numeroDia > 6) continue;
+
+    const [desde, hasta] = rango.split("-");
+    const aperturaMin = minutosDeHora(desde ?? "");
+    const cierreMin = minutosDeHora(hasta ?? "");
+    if (aperturaMin === null || cierreMin === null || cierreMin <= aperturaMin) continue;
+
+    horarios[numeroDia] = { aperturaMin, cierreMin };
+  }
+
+  return horarios;
+}
+
+export const HORARIOS_ESPECIALES = horariosEspeciales(
+  process.env.SANTUARIO_HORARIOS_POR_DIA,
+  "0:13:30-22:00",
+);
+
+/** El horario que rige un día de la semana (0 = domingo). */
+export function horarioDelDia(diaSemana: number): Horario {
+  return HORARIOS_ESPECIALES[diaSemana] ?? { aperturaMin: APERTURA_MIN, cierreMin: CIERRE_MIN };
+}
+
+export const NOMBRES_DIAS = [
+  "domingo",
+  "lunes",
+  "martes",
+  "miércoles",
+  "jueves",
+  "viernes",
+  "sábado",
+];
 
 /** Cada cuántos minutos cae un horario en la grilla (inicio y fin). */
 export const PASO_MIN = num(process.env.SANTUARIO_PASO_MINUTOS, 30);
@@ -73,7 +135,12 @@ export const ANTICIPACION_MIN = num(process.env.SANTUARIO_ANTICIPACION_MINUTOS, 
  */
 export const DIAS_CERRADOS: number[] = (process.env.SANTUARIO_DIAS_CERRADOS ?? "")
   .split(",")
-  .map((item) => Number(item.trim()))
+  // Sin el filtro de vacíos, una variable sin definir dejaba un "" que
+  // Number() convierte en 0, y el domingo quedaba cerrado sin que nadie lo
+  // hubiera pedido.
+  .map((item) => item.trim())
+  .filter(Boolean)
+  .map(Number)
   .filter((item) => Number.isInteger(item) && item >= 0 && item <= 6);
 
 /** Calendario de Google donde viven las reservas. */

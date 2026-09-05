@@ -47,6 +47,21 @@ superponer dos. Así que conviene nombrar el lugar en el título de los eventos 
 
 La lista de lugares se cambia con `SANTUARIO_LUGARES` sin tocar código.
 
+## Los horarios
+
+El horario general va de 8 a 22 (`SANTUARIO_APERTURA_HORA` y `SANTUARIO_CIERRE_HORA`), y
+hay días que pueden tener el suyo propio: por defecto **los domingos recién se puede
+reservar desde las 13:30**. Eso se configura con `SANTUARIO_HORARIOS_POR_DIA`, con el
+formato `dia:desde-hasta` y el día de 0 (domingo) a 6 (sábado):
+
+```
+SANTUARIO_HORARIOS_POR_DIA=0:13:30-22:00,6:09:00-20:00
+```
+
+La grilla de la página arranca sola en el horario que corresponda a cada día, y el pie del
+sitio aclara las excepciones para que nadie se sorprenda. Para cerrar un día entero se usa
+`SANTUARIO_DIAS_CERRADOS`, que es otra cosa.
+
 ## El teléfono
 
 Se pide como `351 555 1234`: diez números, con la característica y sin el 0 ni el 15. El

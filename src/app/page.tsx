@@ -3,8 +3,10 @@ import {
   APERTURA_MIN,
   CIERRE_MIN,
   CONTACTO_WHATSAPP,
+  HORARIOS_ESPECIALES,
   LUGARES,
   MAX_DIAS_ANTICIPACION,
+  NOMBRES_DIAS,
   SANTUARIO_NOMBRE,
 } from "@/lib/config";
 import { fechaMaxima, hoyLocal, primeraFechaReservable } from "@/lib/disponibilidad";
@@ -20,6 +22,18 @@ export default function Home() {
     nombresLugares.length > 1
       ? `${nombresLugares.slice(0, -1).join(", ")} y ${nombresLugares[nombresLugares.length - 1]}`
       : nombresLugares[0];
+
+  // Los días con horario propio se aclaran aparte, para que nadie se sorprenda
+  // de que un domingo la grilla arranque más tarde.
+  const excepciones = Object.entries(HORARIOS_ESPECIALES).map(([dia, horario]) => {
+    const nombre = NOMBRES_DIAS[Number(dia)];
+    const plural = nombre.endsWith("s") ? nombre : `${nombre}s`;
+    const desde = formatearHora(horario.aperturaMin);
+
+    return horario.cierreMin === CIERRE_MIN
+      ? `los ${plural} desde las ${desde}`
+      : `los ${plural} de ${desde} a ${formatearHora(horario.cierreMin)}`;
+  });
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-10 sm:py-14">
@@ -47,7 +61,9 @@ export default function Home() {
       <footer className="mt-10 border-t border-borde pt-6 text-center text-xs leading-relaxed text-tinta/50">
         <p>
           Se puede reservar {listaLugares} de {formatearHora(APERTURA_MIN)} a{" "}
-          {formatearHora(CIERRE_MIN)}, con hasta {MAX_DIAS_ANTICIPACION} días de anticipación.
+          {formatearHora(CIERRE_MIN)}
+          {excepciones.length > 0 && ` (${excepciones.join(", ")})`}, con hasta{" "}
+          {MAX_DIAS_ANTICIPACION} días de anticipación.
         </p>
         <p className="mt-1">
           ¿Tenés una consulta que no es una reserva? Escribinos por WhatsApp y te responde alguien

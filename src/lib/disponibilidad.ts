@@ -1,12 +1,12 @@
 import {
   ANTICIPACION_MIN,
-  APERTURA_MIN,
-  CIERRE_MIN,
   DIAS_CERRADOS,
   IDS_LUGARES,
   MAX_DIAS_ANTICIPACION,
   PASO_MIN,
   TIMEZONE,
+  horarioDelDia,
+  type Horario,
 } from "@/lib/config";
 import type { EventoCalendario } from "@/lib/google-calendar";
 import {
@@ -52,6 +52,11 @@ export const MENSAJES: Record<MotivoRechazo, string> = {
   lugar_invalido: "Alguno de los lugares elegidos no existe.",
 };
 
+/** El horario que rige una fecha, que puede no ser el general (ej: domingos). */
+export function horarioDeFecha(fecha: string): Horario {
+  return horarioDelDia(diaDeLaSemana(fecha, TIMEZONE));
+}
+
 /** Fecha de hoy en la zona del santuario. */
 export function hoyLocal(ahora: Date = new Date()): string {
   return aFechaLocal(ahora, TIMEZONE);
@@ -68,16 +73,20 @@ export function fechaMaxima(ahora: Date = new Date()): string {
  * que respetar la anticipación mínima.
  */
 export function minimoInicio(fecha: string, ahora: Date = new Date()): number {
-  if (fecha !== hoyLocal(ahora)) return APERTURA_MIN;
+  const { aperturaMin } = horarioDeFecha(fecha);
+  if (fecha !== hoyLocal(ahora)) return aperturaMin;
+
   const ahoraMin = aMinutosDelDia(ahora, TIMEZONE) + ANTICIPACION_MIN;
   const redondeado = Math.ceil(ahoraMin / PASO_MIN) * PASO_MIN;
-  return Math.max(APERTURA_MIN, redondeado);
+  return Math.max(aperturaMin, redondeado);
 }
 
-/** Todos los horarios de la grilla, de la apertura al cierre inclusive. */
-export function puntosDelDia(): number[] {
+/** Todos los horarios de la grilla de esa fecha, de la apertura al cierre inclusive. */
+export function puntosDelDia(fecha: string): number[] {
+  const { aperturaMin, cierreMin } = horarioDeFecha(fecha);
+
   const puntos: number[] = [];
-  for (let minuto = APERTURA_MIN; minuto <= CIERRE_MIN; minuto += PASO_MIN) {
+  for (let minuto = aperturaMin; minuto <= cierreMin; minuto += PASO_MIN) {
     puntos.push(minuto);
   }
   return puntos;
@@ -176,7 +185,8 @@ export function validarPedido(
 
   if (finMin <= inicioMin) return "duracion_invalida";
 
-  if (inicioMin < APERTURA_MIN || finMin > CIERRE_MIN) return "fuera_de_horario";
+  const { aperturaMin, cierreMin } = horarioDeFecha(fecha);
+  if (inicioMin < aperturaMin || finMin > cierreMin) return "fuera_de_horario";
   if (inicioMin < minimoInicio(fecha, ahora)) return "muy_sobre_la_hora";
 
   return null;
@@ -191,7 +201,8 @@ export function primeraFechaReservable(ahora: Date = new Date()): string {
 
   for (let intento = 0; intento < 14; intento += 1) {
     const abierto = !DIAS_CERRADOS.includes(diaDeLaSemana(fecha, TIMEZONE));
-    if (abierto && minimoInicio(fecha, ahora) + PASO_MIN <= CIERRE_MIN) return fecha;
+    const { cierreMin } = horarioDeFecha(fecha);
+    if (abierto && minimoInicio(fecha, ahora) + PASO_MIN <= cierreMin) return fecha;
     fecha = sumarDias(fecha, 1);
   }
 

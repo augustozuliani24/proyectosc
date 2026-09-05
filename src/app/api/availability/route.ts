@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 
 import {
-  APERTURA_MIN,
-  CIERRE_MIN,
   DIAS_CERRADOS,
   IDS_LUGARES,
   LUGARES,
@@ -12,6 +10,7 @@ import {
 } from "@/lib/config";
 import {
   fechaMaxima,
+  horarioDeFecha,
   hoyLocal,
   minimoInicio,
   ocupacionDelDia,
@@ -42,17 +41,18 @@ export async function GET(request: Request) {
 
   const ahora = new Date();
   const diaCerrado = DIAS_CERRADOS.includes(diaDeLaSemana(fecha, TIMEZONE));
+  const { aperturaMin, cierreMin } = horarioDeFecha(fecha);
 
   const base = {
     ok: true as const,
     fecha,
     fechaTexto: fechaEnPalabras(fecha, TIMEZONE),
     zonaHoraria: TIMEZONE,
-    aperturaMin: APERTURA_MIN,
-    cierreMin: CIERRE_MIN,
+    aperturaMin,
+    cierreMin,
     pasoMin: PASO_MIN,
     minimoInicioMin: minimoInicio(fecha, ahora),
-    puntos: puntosDelDia(),
+    puntos: puntosDelDia(fecha),
     lugares: LUGARES,
     hoy: hoyLocal(ahora),
     fechaMaxima: fechaMaxima(ahora),
