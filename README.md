@@ -151,6 +151,28 @@ Lo más común es haber cargado las variables **después** del último deploy: e
 variables solo entran en los deploys nuevos, así que hay que volver a desplegar
 (*Deployments* → el de arriba → ⋯ → *Redeploy*) o pushear cualquier cambio.
 
+## Pruebas
+
+```bash
+npm test          # la lógica: horarios, superposiciones, validaciones, teléfonos
+```
+
+Corre sin red y sin credenciales: prueba las reglas puras (ocupación por lugar, horario de
+cada día, qué pedidos se rechazan, cómo se interpretan los eventos cargados a mano).
+
+```bash
+npm run build && npx next start -p 3111   # en una terminal
+npm run pruebas:api                       # en otra
+```
+
+Recorre las rutas contra un servidor local en modo demostración: todas las combinaciones
+de lugares, las duraciones extremas y cada pedido que tiene que rechazarse. Como no hay
+credenciales, no escribe en ningún calendario.
+
+Lo único que estas pruebas **no** cubren es la conexión real con Google (crear el evento,
+chocar contra una reserva que ya existe). Eso se prueba a mano una vez, reservando desde el
+sitio publicado y mirando el calendario.
+
 ## Desarrollo
 
 ```bash

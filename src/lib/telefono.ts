@@ -5,8 +5,8 @@
  * lo que se valida al guardar son exactamente la misma regla.
  */
 
-/** Deja solo los diez números, tolerando que peguen el +54 o el 0 de adelante. */
-export function digitosTelefono(valor: string): string {
+/** Los números del teléfono sin prefijos, pero sin recortar lo que sobre. */
+function numerosSinPrefijo(valor: string): string {
   let digitos = valor.replace(/\D/g, "");
 
   // Solo sacamos los prefijos cuando sobran números: si no, romperíamos el
@@ -14,7 +14,12 @@ export function digitosTelefono(valor: string): string {
   if (digitos.length > 10 && digitos.startsWith("54")) digitos = digitos.slice(2);
   if (digitos.length > 10 && digitos.startsWith("0")) digitos = digitos.slice(1);
 
-  return digitos.slice(0, 10);
+  return digitos;
+}
+
+/** Deja como mucho diez números, para ir mostrándolos mientras se escribe. */
+export function digitosTelefono(valor: string): string {
+  return numerosSinPrefijo(valor).slice(0, 10);
 }
 
 /** "3515551234" a "351 555 1234". */
@@ -25,6 +30,10 @@ export function formatearTelefono(valor: string): string {
     .join(" ");
 }
 
+/**
+ * Valida sobre los números sin recortar: si recortáramos, un teléfono con un
+ * dígito de más pasaría como válido y se guardaría un número equivocado.
+ */
 export function telefonoValido(valor: string): boolean {
-  return digitosTelefono(valor).length === 10;
+  return numerosSinPrefijo(valor).length === 10;
 }

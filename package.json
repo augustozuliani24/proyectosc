@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test --import ./pruebas/alias-registro.mjs \"pruebas/*.test.mjs\"",
+    "pruebas:api": "node pruebas/api.mjs"
   },
   "dependencies": {
     "google-auth-library": "^10.4.0",

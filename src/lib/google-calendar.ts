@@ -94,7 +94,7 @@ async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
   return (await respuesta.json()) as T;
 }
 
-interface EventoAPI {
+export interface EventoAPI {
   id: string;
   summary?: string;
   status?: string;
@@ -122,7 +122,7 @@ function normalizar(texto: string): string {
  * por ocupado todo, que es lo seguro: preferimos rechazar una reserva de más
  * antes que superponer dos.
  */
-function lugaresDelEvento(item: EventoAPI): string[] {
+export function lugaresDelEvento(item: EventoAPI): string[] {
   const anotados = (item.extendedProperties?.private?.lugares ?? "")
     .split(",")
     .map((id) => id.trim())
