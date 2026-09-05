@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { IDS_LUGARES, TIMEZONE, nombreDeLugar } from "@/lib/config";
+import { IDS_LUGARES, MAX_PERSONAS, TIMEZONE, nombreDeLugar } from "@/lib/config";
 import {
   MENSAJES,
   lugaresLibres,
@@ -26,6 +26,7 @@ interface Cuerpo {
   horaInicio?: unknown;
   horaFin?: unknown;
   lugares?: unknown;
+  personas?: unknown;
   nombre?: unknown;
   telefono?: unknown;
   motivo?: unknown;
@@ -63,6 +64,15 @@ export async function POST(request: Request) {
   const pedidos = Array.isArray(cuerpo.lugares) ? cuerpo.lugares.map(String) : [];
   const lugares = IDS_LUGARES.filter((id) => pedidos.includes(id));
 
+  const personas = Number(cuerpo.personas);
+  if (!Number.isInteger(personas) || personas < 1 || personas > MAX_PERSONAS) {
+    return error(
+      "personas_invalido",
+      `Decinos cuántas personas van a ser (entre 1 y ${MAX_PERSONAS}).`,
+      400,
+    );
+  }
+
   if (nombre.length < 2) {
     return error("nombre_invalido", "Escribí a nombre de quién va la reserva.", 400);
   }
@@ -94,6 +104,7 @@ export async function POST(request: Request) {
     horaInicio: formatearHora(inicioMin),
     horaFin: formatearHora(finMin),
     lugares: lugares.map(nombreDeLugar),
+    personas,
     nombre,
   };
 
@@ -126,6 +137,7 @@ export async function POST(request: Request) {
       inicioMin,
       finMin,
       lugares,
+      personas,
       nombre,
       telefono: formatearTelefono(telefono),
       motivo,

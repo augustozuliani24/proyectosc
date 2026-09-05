@@ -36,6 +36,7 @@ interface Reserva {
   horaInicio: string;
   horaFin: string;
   lugares: string[];
+  personas: number;
   nombre: string;
 }
 
@@ -93,6 +94,7 @@ export default function BookingForm({
   const [fin, setFin] = useState<number | null>(null);
   const [elegidos, setElegidos] = useState<string[]>([]);
 
+  const [personas, setPersonas] = useState("");
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [motivo, setMotivo] = useState("");
@@ -184,9 +186,13 @@ export default function BookingForm({
   // de estar seleccionado sin que haga falta limpiarlo a mano.
   const seleccionados = elegidos.filter((id) => lugaresLibres.includes(id));
 
+  const cantidadPersonas = Number(personas);
+  const personasValidas = Number.isInteger(cantidadPersonas) && cantidadPersonas >= 1;
+
   const listoParaEnviar =
     rango !== null &&
     seleccionados.length > 0 &&
+    personasValidas &&
     nombre.trim().length >= 2 &&
     digitosTelefono(telefono).length === 10 &&
     motivo.trim().length >= 3 &&
@@ -255,6 +261,7 @@ export default function BookingForm({
           horaInicio: formatearHora(rango.inicio),
           horaFin: formatearHora(rango.fin),
           lugares: seleccionados,
+          personas: cantidadPersonas,
           nombre,
           telefono,
           motivo,
@@ -293,6 +300,7 @@ export default function BookingForm({
     setInicio(null);
     setFin(null);
     setElegidos([]);
+    setPersonas("");
     setNombre("");
     setTelefono("");
     setMotivo("");
@@ -333,6 +341,10 @@ export default function BookingForm({
             <dd className="font-medium">
               {reserva.horaInicio} a {reserva.horaFin}
             </dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-tinta/60">Personas</dt>
+            <dd className="font-medium">{reserva.personas}</dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-tinta/60">A nombre de</dt>
@@ -566,10 +578,34 @@ export default function BookingForm({
         </p>
       </section>
 
-      {/* Paso 4: los datos */}
+      {/* Paso 4: cuánta gente */}
       <section className="tarjeta p-6">
         <h2 className={titulo}>
           <span className={paso}>4</span>
+          ¿Cuántas personas van a ser?
+        </h2>
+
+        <p className="mt-2 text-sm text-tinta/60">
+          Un número aproximado alcanza. Sirve para saber cómo preparar el lugar.
+        </p>
+
+        <input
+          type="number"
+          inputMode="numeric"
+          min={1}
+          step={1}
+          value={personas}
+          onChange={(e) => setPersonas(e.target.value.replace(/\D/g, "").slice(0, 4))}
+          className="campo mt-4 sm:max-w-[10rem]"
+          placeholder="Ej: 20"
+          required
+        />
+      </section>
+
+      {/* Paso 5: los datos */}
+      <section className="tarjeta p-6">
+        <h2 className={titulo}>
+          <span className={paso}>5</span>
           ¿A nombre de quién?
         </h2>
 
@@ -659,7 +695,9 @@ export default function BookingForm({
             ? "Elegí un horario para continuar"
             : seleccionados.length === 0
               ? "Elegí al menos un lugar"
-              : "Confirmar reserva"}
+              : !personasValidas
+                ? "Decinos cuántas personas van a ser"
+                : "Confirmar reserva"}
       </button>
 
       <p className="pb-4 text-center text-xs text-tinta/50">

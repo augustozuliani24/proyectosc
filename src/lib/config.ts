@@ -58,6 +58,9 @@ export const CIERRE_MIN = num(process.env.SANTUARIO_CIERRE_HORA, 22) * 60;
 /** Cada cuántos minutos cae un horario en la grilla (inicio y fin). */
 export const PASO_MIN = num(process.env.SANTUARIO_PASO_MINUTOS, 30);
 
+/** Tope de personas que se pueden anotar en una reserva. */
+export const MAX_PERSONAS = num(process.env.SANTUARIO_MAX_PERSONAS, 300);
+
 /** Con cuántos días de anticipación como máximo se puede reservar. */
 export const MAX_DIAS_ANTICIPACION = num(process.env.SANTUARIO_MAX_DIAS, 90);
 

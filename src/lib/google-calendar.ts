@@ -31,6 +31,7 @@ export interface DatosReserva {
   inicioMin: number;
   finMin: number;
   lugares: string[];
+  personas: number;
   nombre: string;
   telefono: string;
   motivo: string;
@@ -197,6 +198,7 @@ export async function crearReserva(datos: DatosReserva): Promise<EventoCalendari
 
   const descripcion = [
     `Lugares: ${nombresLugares.join(", ")}`,
+    `Personas: ${datos.personas}`,
     `Reservado por: ${datos.nombre}`,
     `Teléfono: ${datos.telefono}`,
     `Motivo: ${datos.motivo}`,
@@ -217,6 +219,7 @@ export async function crearReserva(datos: DatosReserva): Promise<EventoCalendari
           private: {
             origen: "web-reservas",
             lugares: datos.lugares.join(","),
+            personas: String(datos.personas),
             nombre: datos.nombre,
             telefono: datos.telefono,
           },

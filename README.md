@@ -15,8 +15,8 @@ de siempre, sin aprender ninguna herramienta nueva.
 2. El sistema le responde automáticamente un mensaje con dos caminos: seguir escribiendo
    si es una consulta (**la contesta una persona, el bot no se mete**), o entrar al link
    si quiere reservar.
-3. En la página elige el día, toca la hora de inicio y la de fin, y marca qué lugares
-   necesita. Lo que ya está reservado aparece tachado, así no prueba a ciegas. Tocando de
+3. En la página elige el día, toca la hora de inicio y la de fin, marca qué lugares
+   necesita y cuánta gente va a ser. Lo que ya está reservado aparece tachado, así no prueba a ciegas. Tocando de
    nuevo una hora ya elegida, la suelta.
 
    No hay duración mínima ni máxima más allá del horario del día: se puede reservar media
@@ -170,7 +170,7 @@ src/
     api/whatsapp/webhook/route.ts  respuesta automática con el link
     api/estado/route.ts            diagnóstico de la conexión con Google
   components/
-    booking-form.tsx               el formulario (día → horario → lugares → datos)
+    booking-form.tsx               el formulario (día → horario → lugares → personas → datos)
   lib/
     config.ts                      toda la configuración por variables de entorno
     time.ts                        fechas y horas con zona horaria explícita
