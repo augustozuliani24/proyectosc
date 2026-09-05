@@ -61,3 +61,21 @@ body {
 .animar-entrada {
   animation: aparecer 0.35s ease both;
 }
+
+/* Al imprimir el comprobante sobran los botones y los adornos de pantalla. */
+@media print {
+  .no-imprimir {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+  }
+
+  .tarjeta {
+    border: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    background: white;
+  }
+}

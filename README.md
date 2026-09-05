@@ -47,6 +47,17 @@ superponer dos. Así que conviene nombrar el lugar en el título de los eventos 
 
 La lista de lugares se cambia con `SANTUARIO_LUGARES` sin tocar código.
 
+## El comprobante
+
+Al confirmar, la persona recibe un link a `/comprobante/<id>` con los datos de su reserva y
+un código corto para mencionarla por WhatsApp. Desde ahí puede imprimirlo o guardarlo como
+PDF, y bajar un archivo `.ics` para agregarlo al calendario de su celular.
+
+El comprobante **lee la reserva del calendario cada vez que se abre**, así que no es una
+foto de un momento: si la reserva se cancela, el link deja de mostrarla. Solo muestra las
+reservas hechas desde la web — los eventos que quien organiza carga a mano son su agenda,
+no reservas de nadie, y no se exponen.
+
 ## Los horarios
 
 El horario general va de 8 a 22 (`SANTUARIO_APERTURA_HORA` y `SANTUARIO_CIERRE_HORA`), y

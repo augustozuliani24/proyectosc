@@ -67,6 +67,11 @@ el evento pasa un instante. Si dos personas reservan lo mismo al mismo tiempo, e
 detecta la superposición después de crear el evento, da de baja el suyo y le avisa a la
 segunda persona. El calendario nunca queda con dos reservas pisadas.
 
+**Comprobante con link permanente.** En vez de un archivo suelto que se pierde, cada
+reserva tiene una página propia que lee del calendario cada vez que se abre. Sirve igual
+para guardar como PDF que para volver a mirarla a los diez días, y siempre dice la verdad:
+si la reserva ya no está, el link tampoco la muestra.
+
 ## Costos
 
 Prácticamente nulos para el volumen de una organización chica:

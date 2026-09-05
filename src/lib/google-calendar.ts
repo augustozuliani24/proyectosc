@@ -1,7 +1,7 @@
 import { JWT } from "google-auth-library";
 
 import { CALENDAR_ID, IDS_LUGARES, LUGARES, TIMEZONE, nombreDeLugar } from "@/lib/config";
-import { aInstanteUTC } from "@/lib/time";
+import { aFechaLocal, aInstanteUTC } from "@/lib/time";
 
 const API = "https://www.googleapis.com/calendar/v3";
 const SCOPES = ["https://www.googleapis.com/auth/calendar"];
@@ -94,12 +94,22 @@ async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
   return (await respuesta.json()) as T;
 }
 
+async function pedirOpcional<T>(ruta: string): Promise<T | null> {
+  try {
+    return await pedir<T>(ruta);
+  } catch (error) {
+    if (error instanceof CalendarioError && /respondió 40[34]/.test(error.message)) return null;
+    throw error;
+  }
+}
+
 export interface EventoAPI {
   id: string;
   summary?: string;
   status?: string;
   created?: string;
   transparency?: string;
+  description?: string;
   start?: { dateTime?: string; date?: string };
   end?: { dateTime?: string; date?: string };
   extendedProperties?: { private?: Record<string, string> };
@@ -235,6 +245,52 @@ export async function crearReserva(datos: DatosReserva): Promise<EventoCalendari
     fin,
     todoElDia: false,
     lugares: [...datos.lugares],
+  };
+}
+
+export interface Reserva {
+  id: string;
+  fecha: string;
+  inicio: Date;
+  fin: Date;
+  lugares: string[];
+  personas: number | null;
+  nombre: string;
+  motivo: string;
+}
+
+/**
+ * Busca una reserva por su identificador, para mostrar el comprobante.
+ *
+ * Solo devuelve las que se hicieron desde la web: los eventos que cargó a mano
+ * quien organiza son su agenda, no reservas de nadie, y no se muestran.
+ */
+export async function obtenerReserva(id: string): Promise<Reserva | null> {
+  const item = await pedirOpcional<EventoAPI>(
+    `/calendars/${encodeURIComponent(CALENDAR_ID)}/events/${encodeURIComponent(id)}`,
+  );
+
+  if (!item || item.status === "cancelled") return null;
+
+  const privadas = item.extendedProperties?.private ?? {};
+  if (privadas.origen !== "web-reservas") return null;
+
+  const inicio = new Date(item.start?.dateTime ?? "");
+  const fin = new Date(item.end?.dateTime ?? "");
+  if (Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime())) return null;
+
+  const personas = Number(privadas.personas);
+  const motivo = /^Motivo: (.*)$/m.exec(item.description ?? "")?.[1] ?? "";
+
+  return {
+    id: item.id,
+    fecha: aFechaLocal(inicio, TIMEZONE),
+    inicio,
+    fin,
+    lugares: lugaresDelEvento(item),
+    personas: Number.isFinite(personas) ? personas : null,
+    nombre: privadas.nombre ?? "",
+    motivo,
   };
 }
 

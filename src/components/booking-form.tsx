@@ -352,13 +352,35 @@ export default function BookingForm({
           </div>
         </dl>
 
-        <button
-          type="button"
-          onClick={empezarDeNuevo}
-          className="mt-6 rounded-xl border border-borde bg-white px-5 py-2.5 text-sm font-medium text-marian-dark transition hover:bg-marian-soft"
-        >
-          Hacer otra reserva
-        </button>
+        {!reserva.demo && (
+          <p className="mt-4 text-xs text-tinta/50">
+            Código de la reserva:{" "}
+            <span className="font-mono font-medium text-tinta/70">
+              {reserva.id.slice(0, 8).toUpperCase()}
+            </span>
+          </p>
+        )}
+
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <a
+            href={`/comprobante/${encodeURIComponent(reserva.id)}`}
+            className="rounded-xl bg-marian px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-marian-dark"
+          >
+            Ver comprobante
+          </a>
+
+          <button
+            type="button"
+            onClick={empezarDeNuevo}
+            className="rounded-xl border border-borde bg-white px-5 py-2.5 text-sm font-medium text-marian-dark transition hover:bg-marian-soft"
+          >
+            Hacer otra reserva
+          </button>
+        </div>
+
+        <p className="mt-4 text-xs text-tinta/50">
+          Guardá el comprobante por las dudas: queda disponible en ese link.
+        </p>
       </div>
     );
   }
