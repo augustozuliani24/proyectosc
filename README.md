@@ -126,6 +126,16 @@ quiere la respuesta automática:
 3. Cargar `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET` y
    `RESERVAS_URL`.
 
+## Si el sitio sigue en modo demostración
+
+Abrir `/api/estado` en el sitio. Dice qué variables llegaron, si el calendario responde y
+qué hacer con lo que falta. No devuelve credenciales ni datos de las reservas, así que se
+puede compartir para pedir ayuda.
+
+Lo más común es haber cargado las variables **después** del último deploy: en Vercel las
+variables solo entran en los deploys nuevos, así que hay que volver a desplegar
+(*Deployments* → el de arriba → ⋯ → *Redeploy*) o pushear cualquier cambio.
+
 ## Desarrollo
 
 ```bash
@@ -158,6 +168,7 @@ src/
     api/availability/route.ts      qué horarios están libres un día
     api/reservations/route.ts      crea la reserva en el calendario
     api/whatsapp/webhook/route.ts  respuesta automática con el link
+    api/estado/route.ts            diagnóstico de la conexión con Google
   components/
     booking-form.tsx               el formulario (día → horario → lugares → datos)
   lib/
