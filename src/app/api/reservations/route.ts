@@ -15,6 +15,7 @@ import {
   listarEventosDelDia,
 } from "@/lib/google-calendar";
 import { modoDemo } from "@/lib/modo";
+import { avisarNuevaReserva } from "@/lib/notificaciones";
 import { formatearTelefono, telefonoValido } from "@/lib/telefono";
 import { aInstanteUTC, fechaEnPalabras, formatearHora, parsearHora } from "@/lib/time";
 
@@ -168,6 +169,20 @@ export async function POST(request: Request) {
         { ocupados: ocupacionDelDia(eventosFrescos, fecha) },
       );
     }
+
+    const origen = new URL(request.url).origin;
+    await avisarNuevaReserva({
+      id: evento.id,
+      fecha,
+      inicioMin,
+      finMin,
+      lugares,
+      personas,
+      nombre,
+      telefono: formatearTelefono(telefono),
+      motivo,
+      urlComprobante: `${process.env.RESERVAS_URL ?? origen}/comprobante/${encodeURIComponent(evento.id)}`,
+    });
 
     return NextResponse.json({ ok: true, reserva: { id: evento.id, ...detalleReserva } });
   } catch (e) {

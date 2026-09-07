@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { hoyLocal } from "@/lib/disponibilidad";
 import { CalendarioError, calendarioConfigurado, listarEventosDelDia } from "@/lib/google-calendar";
 import { modoDemo } from "@/lib/modo";
+import { notificacionesConfiguradas } from "@/lib/notificaciones";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,6 +33,7 @@ export async function GET() {
   if (!calendarioConfigurado()) {
     return NextResponse.json({
       modoDemo: modoDemo(),
+      avisosPorMail: notificacionesConfiguradas(),
       variables,
       faltantes,
       calendario: null,
@@ -46,6 +48,7 @@ export async function GET() {
     await listarEventosDelDia(hoyLocal());
     return NextResponse.json({
       modoDemo: modoDemo(),
+      avisosPorMail: notificacionesConfiguradas(),
       variables,
       faltantes,
       calendario: { ok: true },
@@ -65,6 +68,7 @@ export async function GET() {
 
     return NextResponse.json({
       modoDemo: modoDemo(),
+      avisosPorMail: notificacionesConfiguradas(),
       variables,
       faltantes,
       calendario: {

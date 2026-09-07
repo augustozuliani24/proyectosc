@@ -184,6 +184,20 @@ Lo único que estas pruebas **no** cubren es la conexión real con Google (crear
 chocar contra una reserva que ya existe). Eso se prueba a mano una vez, reservando desde el
 sitio publicado y mirando el calendario.
 
+## Aviso por mail de cada reserva
+
+Con `RESEND_API_KEY` y `NOTIFICACIONES_EMAIL` cargadas, cada reserva dispara un mail con
+todos los datos y el link al comprobante. Sin esas variables el sistema anda igual, sin
+avisar. `/api/estado` dice si están configuradas.
+
+Si el mail falla, la reserva **igual queda guardada**: el aviso nunca puede tumbar algo que
+ya se confirmó en el calendario.
+
+Por qué no se usa la notificación propia de Google Calendar: la de "evento nuevo" solo se
+dispara con invitaciones, y estas reservas las escribe directo la cuenta de servicio.
+Agregar a quien organiza como invitada tampoco funciona, porque una cuenta de servicio no
+puede invitar a nadie sin Google Workspace.
+
 ## Desarrollo
 
 ```bash
