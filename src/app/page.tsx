@@ -1,4 +1,5 @@
 import BookingForm from "@/components/booking-form";
+import ImagenSantuario from "@/components/imagen-santuario";
 import {
   APERTURA_MIN,
   CIERRE_MIN,
@@ -38,6 +39,7 @@ export default function Home() {
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-10 sm:py-14">
       <header className="mb-8 text-center">
+        <ImagenSantuario />
         <p className="text-sm font-medium uppercase tracking-[0.2em] text-dorado">
           Movimiento de Schoenstatt
         </p>

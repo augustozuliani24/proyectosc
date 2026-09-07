@@ -80,7 +80,7 @@ export async function avisarNuevaReserva(aviso: AvisoReserva): Promise<void> {
   ].join("\n");
 
   const html = `
-    <div style="font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;color:#1f2a37;max-width:520px">
+    <div lang="es" style="font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;color:#1f2a37;max-width:520px">
       <h2 style="color:#17385f;margin:0 0 4px">Nueva reserva</h2>
       <p style="color:#5b6472;margin:0 0 16px">${escaparHtml(SANTUARIO_NOMBRE)}</p>
       <table style="border-collapse:collapse;width:100%;font-size:14px">
