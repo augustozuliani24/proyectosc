@@ -231,7 +231,61 @@ Google, que se prueba a mano reservando desde el sitio.
 
 ---
 
-## 10. Lo que queda pendiente
+## 10. Cómo cambiar algo vos mismo
+
+No hace falta instalar nada: se puede editar desde el navegador, en GitHub.
+
+### Los pasos
+
+1. Entrá al archivo que querés cambiar en
+   https://github.com/augustozuliani24/proyectosc
+2. Tocá el **lápiz** (arriba a la derecha del contenido del archivo).
+3. Cambiá lo que quieras.
+4. Abajo de todo, escribí en una línea qué cambiaste (por ejemplo, "Cambiar el texto de
+   bienvenida") y tocá **Commit changes**.
+5. Listo. Vercel se entera sola y en un minuto está publicado.
+
+### Dónde está cada cosa que se suele querer cambiar
+
+| Qué querés cambiar | Archivo |
+|---|---|
+| El título, el subtítulo y el texto del pie | `src/app/page.tsx` |
+| Los textos del formulario (los pasos, los ejemplos de cada campo) | `src/components/booking-form.tsx` |
+| Los textos del comprobante | `src/app/comprobante/[id]/page.tsx` |
+| Los colores | `src/app/globals.css` (arriba de todo, en `@theme`) |
+| El mensaje automático de WhatsApp | `src/app/api/whatsapp/webhook/route.ts` |
+| Horarios, lugares, duraciones, topes | No se tocan acá: son variables de entorno en Vercel |
+
+### Qué es seguro tocar y qué no
+
+**Seguro:** todo lo que esté entre comillas y sea un texto que se lee en la pantalla.
+Cambiar `"Elegí el día"` por `"¿Qué día lo necesitás?"` no puede romper nada.
+
+**Con cuidado:** los archivos de `src/lib/`. Ahí viven las reglas (horarios, choques de
+reservas, validaciones). Un cambio ahí puede hacer que se acepten reservas superpuestas.
+
+**Regla práctica:** cambiar lo que está *adentro* de las comillas es seguro. Cambiar lo que
+está *afuera* puede romper el código.
+
+### Si algo sale mal
+
+No hay que tenerle miedo, porque hay dos redes de contención:
+
+1. **Si el código queda roto, el sitio no se rompe.** Vercel intenta compilar; si falla,
+   deja publicada la versión anterior y avisa que el build falló. La página sigue andando.
+2. **Todo cambio se puede deshacer.** En la pestaña *Commits* de GitHub, entrás al cambio y
+   tocás **Revert**: se crea otro commit que lo deja como estaba.
+
+Para ver si salió bien: https://vercel.com/augustozuliani24/reservas-santuario → pestaña
+*Deployments*. Verde (*Ready*) es que se publicó; rojo (*Error*) es que algo no compiló, y
+ahí conviene revertir o pedir ayuda.
+
+### Si trabajamos los dos
+
+El código lo edita quien sea, pero si los dos tocamos el mismo archivo al mismo tiempo
+puede haber choques. Alcanza con avisar qué se tocó.
+
+## 11. Lo que queda pendiente
 
 - **Cancelar reservas** desde la página (falta decidir cómo se identifica la persona).
 - **Dar de alta el número en Meta** para la respuesta automática de WhatsApp.
