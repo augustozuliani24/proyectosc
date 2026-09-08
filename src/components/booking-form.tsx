@@ -608,7 +608,7 @@ export default function BookingForm({
         </h2>
 
         <p className="mt-2 text-sm text-tinta/60">
-          Un número aproximado alcanza. Sirve para saber cómo preparar el lugar.
+          Un número aproximado alcanza.
         </p>
 
         <input
@@ -653,7 +653,7 @@ export default function BookingForm({
               value={telefono}
               onChange={(e) => setTelefono(formatearTelefono(e.target.value))}
               className="campo"
-              placeholder="264 xxx xxxx"
+              placeholder="264 XXX XXXX"
               required
             />
             <span className="mt-1 block text-xs text-tinta/50">
