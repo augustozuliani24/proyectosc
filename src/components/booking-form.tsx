@@ -653,7 +653,7 @@ export default function BookingForm({
               value={telefono}
               onChange={(e) => setTelefono(formatearTelefono(e.target.value))}
               className="campo"
-              placeholder="351 555 1234"
+              placeholder="264 xxx xxxx"
               required
             />
             <span className="mt-1 block text-xs text-tinta/50">
