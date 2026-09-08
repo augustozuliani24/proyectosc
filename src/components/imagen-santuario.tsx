@@ -1,29 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef } from "react";
+
+const PRINCIPAL = "/mta.jpg";
+const ALTERNATIVA = "/mta.png";
 
 /**
  * La imagen de la Mater en el encabezado.
  *
- * El archivo se sube al repositorio (public/mta.jpg o public/mta.png). Si
- * todavía no está, el componente no muestra nada en vez de dejar el ícono de
- * imagen rota: la página tiene que verse bien igual.
+ * El archivo se sube al repositorio, a public/. Si todavía no está, la imagen
+ * se oculta sola en vez de dejar el ícono de imagen rota.
+ *
+ * Ojo con el momento: el navegador pide la imagen mientras lee el HTML, antes
+ * de que React tome el control, así que un error puede ocurrir cuando todavía
+ * no hay nadie escuchando. Por eso, además del onError, al montar se revisa si
+ * la carga ya falló (una imagen terminada y sin ancho es una que no cargó).
  */
-const CANDIDATAS = ["/mta.jpg", "/mta.png", "/mta.jpeg", "/mta.webp"];
-
 export default function ImagenSantuario() {
-  const [intento, setIntento] = useState(0);
+  const referencia = useRef<HTMLImageElement>(null);
 
-  if (intento >= CANDIDATAS.length) return null;
+  function siguienteIntento(imagen: HTMLImageElement) {
+    if (!imagen.getAttribute("src")?.endsWith(ALTERNATIVA)) {
+      imagen.src = ALTERNATIVA;
+      return;
+    }
+    imagen.hidden = true;
+  }
 
-  // Va un <img> común y no next/image: el archivo puede no existir todavía, y
-  // solo así se puede detectar con onError para no mostrar una imagen rota.
+  useEffect(() => {
+    const imagen = referencia.current;
+    if (imagen && imagen.complete && imagen.naturalWidth === 0) siguienteIntento(imagen);
+  }, []);
+
+  // Va un <img> común y no next/image: solo así se puede detectar que el
+  // archivo no está y ocultarlo.
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={CANDIDATAS[intento]}
+      ref={referencia}
+      src={PRINCIPAL}
       alt="Mater Ter Admirabilis"
-      onError={() => setIntento((valor) => valor + 1)}
+      onError={(evento) => siguienteIntento(evento.currentTarget)}
       className="mx-auto mb-5 w-32 rounded-2xl border border-dorado/30 shadow-xl shadow-marian/15 sm:w-36"
     />
   );

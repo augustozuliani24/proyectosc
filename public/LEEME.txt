@@ -1,0 +1,7 @@
+Acá va la imagen que se muestra arriba de todo en la página.
+
+Guardala como "mta.jpg" (también sirve "mta.png") en esta misma carpeta.
+Si el archivo no está, la página simplemente no muestra la imagen: no se rompe.
+
+Conviene que no pase de unos 600 píxeles de ancho y unos 300 KB, para que la
+página abra rápido en el celular.

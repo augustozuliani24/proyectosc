@@ -28,6 +28,12 @@ de siempre, sin aprender ninguna herramienta nueva.
 La única automatización sobre WhatsApp es mandar el link. Todas las conversaciones siguen
 en manos de la persona que atiende el número.
 
+## La imagen del encabezado
+
+La imagen que aparece arriba de todo sale de `public/mta.jpg` (o `mta.png`). No está en el
+repositorio: hay que subirla ahí. Si falta, la página no la muestra y se ve bien igual —
+nunca queda el ícono de imagen rota.
+
 ## Los lugares
 
 Se pueden reservar varios espacios independientes — por defecto **Santuario**, **SUM** y
