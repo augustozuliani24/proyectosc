@@ -248,4 +248,5 @@ src/
     whatsapp.ts                    envío de mensajes y validación de firma
 docs/
   IDEA.md                          para qué es esto y por qué está hecho así
+  COMO-FUNCIONA.md                 el sistema completo explicado de cero
 ```
