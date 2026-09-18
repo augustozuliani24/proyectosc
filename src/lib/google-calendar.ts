@@ -222,6 +222,7 @@ export async function crearReserva(datos: DatosReserva): Promise<EventoCalendari
       method: "POST",
       body: JSON.stringify({
         summary: `${nombresLugares.join(" + ")} · ${datos.nombre}`,
+        colorId: "3",
         description: descripcion,
         start: { dateTime: inicio.toISOString(), timeZone: TIMEZONE },
         end: { dateTime: fin.toISOString(), timeZone: TIMEZONE },
