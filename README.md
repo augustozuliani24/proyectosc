@@ -36,8 +36,9 @@ nunca queda el ícono de imagen rota.
 
 ## Los lugares
 
-Se pueden reservar varios espacios independientes — por defecto **Santuario**, **SUM** y
-**Cocina** — y una misma persona puede tomar uno, dos o los tres en el mismo horario. Cada
+Se pueden reservar varios espacios independientes — por defecto Santuario, SUM, Cocina,
+Ermita, Memorial Don João Pozzobon y Espacio JM — y una misma persona puede tomar los que
+necesite en el mismo horario. Cada
 lugar tiene su disponibilidad propia: que el Santuario esté ocupado a las 10 no impide que
 alguien reserve la Cocina a las 10.
 
@@ -48,10 +49,14 @@ ocupa.
 
 Para los eventos que se cargan **a mano** en el calendario, el sistema mira el título: si
 nombra algún lugar (`Cocina - reunión`), bloquea solo ese; si no nombra ninguno, bloquea
-los tres. Es a propósito — ante la duda prefiere rechazar una reserva de más antes que
+todos. Es a propósito — ante la duda prefiere rechazar una reserva de más antes que
 superponer dos. Así que conviene nombrar el lugar en el título de los eventos manuales.
 
 La lista de lugares se cambia con `SANTUARIO_LUGARES` sin tocar código.
+
+Cuando un lugar está ocupado solo en parte del rango pedido, el botón dice en qué franja lo
+está y cuál queda libre ("Ocupado de 8:30 a 10:00 · Libre de 10:00 a 13:00"), para que se
+vea que ese pedazo se puede pedir en una segunda reserva.
 
 ## El comprobante
 

@@ -72,6 +72,37 @@ function ocupado(bloques: Bloque[], inicio: number, fin: number): boolean {
   return bloques.some((bloque) => inicio < bloque.finMin && fin > bloque.inicioMin);
 }
 
+/** "08:30 a 10:00" */
+function tramoEnPalabras(bloque: Bloque): string {
+  return `${formatearHora(bloque.inicioMin)} a ${formatearHora(bloque.finMin)}`;
+}
+
+/**
+ * Parte el rango elegido en lo que ese lugar ya tiene tomado y lo que le queda
+ * libre. Sirve para decir "ocupado de 8:30 a 10, libre de 10 a 13" en vez de un
+ * "ocupado" a secas: así se ve que el resto se puede pedir en otra reserva.
+ */
+function tramos(bloques: Bloque[], inicio: number, fin: number) {
+  const ocupados = bloques
+    .filter((bloque) => inicio < bloque.finMin && fin > bloque.inicioMin)
+    .map((bloque) => ({
+      inicioMin: Math.max(bloque.inicioMin, inicio),
+      finMin: Math.min(bloque.finMin, fin),
+    }));
+
+  const libres: Bloque[] = [];
+  let desde = inicio;
+
+  for (const bloque of ocupados) {
+    if (bloque.inicioMin > desde) libres.push({ inicioMin: desde, finMin: bloque.inicioMin });
+    desde = Math.max(desde, bloque.finMin);
+  }
+
+  if (desde < fin) libres.push({ inicioMin: desde, finMin: fin });
+
+  return { ocupados, libres };
+}
+
 /** Hasta qué hora se puede estirar una reserva en un lugar, arrancando en `inicio`. */
 function extensionLibre(bloques: Bloque[], inicio: number, tope: number): number {
   for (const bloque of bloques) {
@@ -185,6 +216,16 @@ export default function BookingForm({
   // También derivado: si el rango cambia y un lugar elegido queda ocupado, deja
   // de estar seleccionado sin que haga falta limpiarlo a mano.
   const seleccionados = elegidos.filter((id) => lugaresLibres.includes(id));
+
+  /** ¿Algún lugar ocupado tiene igual un rato libre dentro del rango elegido? */
+  const hayRatosLibres =
+    rango !== null &&
+    disponibilidad !== null &&
+    lugares.some(
+      (lugar) =>
+        !lugaresLibres.includes(lugar.id) &&
+        tramos(disponibilidad.ocupados[lugar.id] ?? [], rango.inicio, rango.fin).libres.length > 0,
+    );
 
   const cantidadPersonas = Number(personas);
   const personasValidas = Number.isInteger(cantidadPersonas) && cantidadPersonas >= 1;
@@ -556,6 +597,10 @@ export default function BookingForm({
           {lugares.map((lugar) => {
             const libre = lugaresLibres.includes(lugar.id);
             const activo = seleccionados.includes(lugar.id);
+            const detalle =
+              rango && !libre && disponibilidad
+                ? tramos(disponibilidad.ocupados[lugar.id] ?? [], rango.inicio, rango.fin)
+                : null;
 
             return (
               <button
@@ -572,8 +617,16 @@ export default function BookingForm({
                 }`}
               >
                 <span className="block">{lugar.nombre}</span>
-                {rango && !libre && (
-                  <span className="mt-0.5 block text-xs font-normal">Ocupado a esa hora</span>
+                {detalle && (
+                  <span className="mt-1 block text-xs font-normal leading-snug">
+                    Ocupado de {detalle.ocupados.map(tramoEnPalabras).join(" y de ")}
+                    {detalle.libres.length > 0 && (
+                      <>
+                        <br />
+                        Libre de {detalle.libres.map(tramoEnPalabras).join(" y de ")}
+                      </>
+                    )}
+                  </span>
                 )}
               </button>
             );
@@ -598,6 +651,13 @@ export default function BookingForm({
             </span>
           )}
         </p>
+
+        {hayRatosLibres && (
+          <p className="mt-3 rounded-xl bg-marian-soft/60 p-3 text-xs leading-relaxed text-marian-dark">
+            ¿Te sirve el rato que queda libre en un lugar ocupado? Terminá esta reserva y hacé
+            otra con ese horario.
+          </p>
+        )}
       </section>
 
       {/* Paso 4: cuánta gente */}

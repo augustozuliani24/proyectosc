@@ -43,6 +43,9 @@ export const LUGARES: Lugar[] = lugares(process.env.SANTUARIO_LUGARES, [
   { id: "santuario", nombre: "Santuario" },
   { id: "sum", nombre: "SUM" },
   { id: "cocina", nombre: "Cocina" },
+  { id: "ermita", nombre: "Ermita" },
+  { id: "memorial", nombre: "Memorial Don João Pozzobon" },
+  { id: "espacio-jm", nombre: "Espacio JM" },
 ]);
 
 export const IDS_LUGARES = LUGARES.map((lugar) => lugar.id);

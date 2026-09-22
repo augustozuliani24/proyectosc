@@ -9,6 +9,20 @@
  */
 const BASE = process.env.URL_PRUEBAS ?? "http://localhost:3111";
 
+/**
+ * Las fechas se calculan desde hoy y no se escriben a mano: con fechas fijas,
+ * las pruebas se van al pasado solas y empiezan a fallar por vencidas.
+ */
+function proximo(diaSemana) {
+  const fecha = new Date();
+  fecha.setDate(fecha.getDate() + 7);
+  while (fecha.getDay() !== diaSemana) fecha.setDate(fecha.getDate() + 1);
+  return fecha.toISOString().slice(0, 10);
+}
+
+const UN_JUEVES = proximo(4);
+const UN_DOMINGO = proximo(0);
+
 let ok = 0;
 const fallas = [];
 
@@ -32,7 +46,7 @@ async function reservar(datos) {
 }
 
 const base = {
-  fecha: "2026-09-17",
+  fecha: UN_JUEVES,
   horaInicio: "10:00",
   horaFin: "11:00",
   lugares: ["santuario"],
@@ -43,14 +57,15 @@ const base = {
 };
 
 console.log("\nDisponibilidad");
-const jueves = await (await fetch(`${BASE}/api/availability?date=2026-09-17`)).json();
-chequear("responde el jueves", jueves.ok === true);
+const jueves = await (await fetch(`${BASE}/api/availability?date=${UN_JUEVES}`)).json();
+chequear("responde un día común", jueves.ok === true);
 chequear("la grilla arranca a las 08:00", jueves.puntos[0] === 480, `dio ${jueves.puntos[0]}`);
 chequear("el cierre entra como fin", jueves.puntos.at(-1) === 1320);
-chequear("trae los tres lugares", jueves.lugares.length === 3);
+const idsLugares = jueves.lugares.map((l) => l.id);
+chequear("trae los lugares configurados", idsLugares.length >= 3, idsLugares.join(", "));
 chequear("trae la ocupación por lugar", jueves.lugares.every((l) => Array.isArray(jueves.ocupados[l.id])));
 
-const domingo = await (await fetch(`${BASE}/api/availability?date=2026-09-20`)).json();
+const domingo = await (await fetch(`${BASE}/api/availability?date=${UN_DOMINGO}`)).json();
 chequear("el domingo arranca 13:30", domingo.puntos[0] === 810, `dio ${domingo.puntos[0]}`);
 chequear("el domingo no está cerrado", domingo.diaCerrado === false);
 
@@ -58,15 +73,17 @@ const invalida = await fetch(`${BASE}/api/availability?date=hola`);
 chequear("rechaza una fecha inválida", invalida.status === 400);
 
 console.log("\nCombinaciones de lugares");
-for (const lugares of [
-  ["santuario"],
-  ["sum"],
-  ["cocina"],
+const combinaciones = [
+  ...idsLugares.map((id) => [id]),
   ["santuario", "sum"],
   ["santuario", "cocina"],
   ["sum", "cocina"],
+  ["ermita", "memorial"],
   ["santuario", "sum", "cocina"],
-]) {
+  idsLugares,
+];
+
+for (const lugares of combinaciones) {
   const { cuerpo } = await reservar({ ...base, lugares });
   chequear(`reserva ${lugares.join(" + ")}`, cuerpo.ok === true, cuerpo.mensaje);
 }
@@ -91,7 +108,7 @@ const rechazos = [
   ["fuera de la grilla", { horaInicio: "10:07" }, "horario_invalido"],
   ["antes de abrir", { horaInicio: "06:00", horaFin: "07:00" }, "fuera_de_horario"],
   ["después de cerrar", { horaInicio: "21:30", horaFin: "23:00" }, "fuera_de_horario"],
-  ["domingo a la mañana", { fecha: "2026-09-20", horaInicio: "10:00", horaFin: "11:00" }, "fuera_de_horario"],
+  ["domingo a la mañana", { fecha: UN_DOMINGO, horaInicio: "10:00", horaFin: "11:00" }, "fuera_de_horario"],
   ["sin lugar", { lugares: [] }, "sin_lugar"],
   ["lugar inexistente", { lugares: ["patio"] }, "sin_lugar"],
   ["sin personas", { personas: undefined }, "personas_invalido"],
@@ -111,7 +128,7 @@ for (const [nombre, cambio, codigoEsperado] of rechazos) {
 console.log("\nDomingo dentro del horario");
 const domingoOk = await reservar({
   ...base,
-  fecha: "2026-09-20",
+  fecha: UN_DOMINGO,
   horaInicio: "13:30",
   horaFin: "15:00",
 });

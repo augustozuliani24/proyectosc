@@ -41,7 +41,7 @@ No hay tope de duración a propósito: el único límite es el horario de apertu
 que de paso impide que una reserva cruce de un día a otro. Quien necesite dos días
 seguidos hace dos reservas, y así cada día queda visible por separado en el calendario.
 
-**Varios lugares, una sola agenda.** Se reservan Santuario, SUM y Cocina por separado, y
+**Varios lugares, una sola agenda.** Se reservan Santuario, SUM, Cocina, Ermita, Memorial Don João Pozzobon y Espacio JM por separado, y
 una persona puede tomar los que necesite a la vez. Todo va a un mismo Google Calendar
 (para no obligar a manejar tres), y cada evento anota qué lugares ocupa. Los eventos
 cargados a mano se interpretan por el título, y si no nombran ningún lugar se asume que

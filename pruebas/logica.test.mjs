@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { TIMEZONE } from "@/lib/config.ts";
+import { IDS_LUGARES, TIMEZONE } from "@/lib/config.ts";
 import {
   horarioDeFecha,
   lugaresLibres,
@@ -177,19 +177,24 @@ describe("qué lugares quedan libres", () => {
     JUEVES,
   );
 
+  // Se comparan contra la configuración y no contra una lista fija, para que
+  // agregar un lugar no rompa pruebas que no hablan de ese lugar.
+  const todosMenos = (...tomados) => IDS_LUGARES.filter((id) => !tomados.includes(id));
+
   it("deja libre lo que nadie tomó", () => {
-    assert.deepEqual(lugaresLibres(ocupacion, 600, 660), ["sum"]);
+    assert.deepEqual(lugaresLibres(ocupacion, 600, 660), todosMenos("santuario", "cocina"));
   });
 
   it("dos reservas que se tocan no se pisan", () => {
-    assert.deepEqual(lugaresLibres(ocupacion, 660, 720).sort(), ["cocina", "santuario", "sum"]);
-    assert.deepEqual(lugaresLibres(ocupacion, 540, 600).sort(), ["cocina", "santuario", "sum"]);
+    assert.deepEqual(lugaresLibres(ocupacion, 660, 720), IDS_LUGARES);
+    assert.deepEqual(lugaresLibres(ocupacion, 540, 600), IDS_LUGARES);
   });
 
   it("detecta la superposición aunque sea de un minuto", () => {
-    assert.deepEqual(lugaresLibres(ocupacion, 630, 690), ["sum"]);
-    assert.deepEqual(lugaresLibres(ocupacion, 570, 630), ["sum"]);
-    assert.deepEqual(lugaresLibres(ocupacion, 540, 720), ["sum"], "una reserva que la contiene entera");
+    const libres = todosMenos("santuario", "cocina");
+    assert.deepEqual(lugaresLibres(ocupacion, 630, 690), libres);
+    assert.deepEqual(lugaresLibres(ocupacion, 570, 630), libres);
+    assert.deepEqual(lugaresLibres(ocupacion, 540, 720), libres, "una reserva que la contiene entera");
   });
 });
 
@@ -250,11 +255,13 @@ describe("eventos cargados a mano en el calendario", () => {
   });
 
   it("si el título no nombra ningún lugar, bloquea todo", () => {
-    assert.deepEqual(lugaresDelEvento({ id: "5", summary: "Reunión de equipo" }), [
-      "santuario",
-      "sum",
-      "cocina",
-    ]);
-    assert.deepEqual(lugaresDelEvento({ id: "6" }), ["santuario", "sum", "cocina"]);
+    assert.deepEqual(lugaresDelEvento({ id: "5", summary: "Reunión de equipo" }), IDS_LUGARES);
+    assert.deepEqual(lugaresDelEvento({ id: "6" }), IDS_LUGARES);
+  });
+
+  it("reconoce los lugares de nombre largo por su título", () => {
+    assert.deepEqual(lugaresDelEvento({ id: "7", summary: "Ermita - rosario" }), ["ermita"]);
+    assert.deepEqual(lugaresDelEvento({ id: "8", summary: "Memorial: visita" }), ["memorial"]);
+    assert.deepEqual(lugaresDelEvento({ id: "9", summary: "Espacio JM - taller" }), ["espacio-jm"]);
   });
 });

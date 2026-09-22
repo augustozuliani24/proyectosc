@@ -202,10 +202,10 @@ diseño sin tocar la lógica.
 
 - **Horario:** de 8 a 22, salvo los domingos que abren 13:30. Configurable por día.
 - **Duración:** desde media hora hasta el día entero. No puede cruzar de un día a otro.
-- **Lugares:** Santuario, SUM y Cocina, independientes entre sí. Se pueden combinar.
+- **Lugares:** Santuario, SUM, Cocina, Ermita, Memorial Don João Pozzobon y Espacio JM, independientes entre sí y combinables.
 - **Anticipación:** hasta 90 días, y como mínimo 1 hora antes.
 - **Eventos cargados a mano** en el calendario: si el título nombra un lugar ("Cocina -
-  reunión"), bloquea solo ese; si no nombra ninguno, bloquea los tres. Ante la duda,
+  reunión"), bloquea solo ese; si no nombra ninguno, bloquea todos. Ante la duda,
   prefiere rechazar una reserva de más antes que permitir dos superpuestas.
 
 ---
